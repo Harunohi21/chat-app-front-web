@@ -1,0 +1,67 @@
+<% provide(:title, "User Manage") %>
+  <h1>User Manage</h1>
+  <div class="col-sm-9">
+    <table class="tab">
+      <thead>
+        <tr>
+          <th>番号</th>
+          <th>ユーザ名</th>
+          <th>メールアドレス</th>
+          <th>セットアップ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @user_manages_admin.each do |user_manage_admin| %>
+          <tr>
+            <td>
+              <% if user_manage_admin['image_url'].present? %>
+                <img src="<%= user_manage_admin['image_url'] %>" alt="Profile Image" class="profile-image">
+              <% else %>
+                <div class="profile-placeholder">
+                <%= user_manage_admin['name'][0].upcase %>
+                </div>
+              <% end %>
+            </td>
+            <td><%= user_manage_admin['name'] %></td>
+            <td><%= user_manage_admin['email'] %></td>
+            <td>-</td>
+          </tr>
+        <% end %>
+        <% @user_manages_activate.each do |user_manage_activate| %>
+          <tr>
+            <td>
+              <% if user_manage_activate['image_url'].present? %>
+                <img src="<%= user_manage_activate['image_url'] %>" alt="Profile Image" class="profile-image">
+              <% else %>
+                <div class="profile-placeholder">
+                  <%= user_manage_activate['name'][0].upcase %>
+                </div>
+              <% end %>
+            </td>
+            <td><%= user_manage_activate['name'] %></td>
+            <td><%= user_manage_activate['email'] %></td>
+            <td><%= link_to "アカウントを解除する", {controller: "user_manage", action: "edit", id: user_manage_activate['id'] }%></td>  
+          </tr>
+        <% end %>
+        <% @user_manages_deactivate.each do |user_manage_deactivate| %>
+          <tr>
+            <td>
+              <% if user_manage_deactivate['image_url'].present? %>
+                <img src="<%= user_manage_deactivate['image_url'] %>" alt="Profile Image" class="profile-image">
+              <% else %>
+                <div class="profile-placeholder">
+                  <%= user_manage_deactivate['name'][0].upcase %>
+                </div>
+              <% end %>
+            </td>
+            <td style="background-color: red; color: white;"><%= user_manage_deactivate['name'] %></td>
+            <td style="background-color: red; color: white;"><%= user_manage_deactivate['email'] %></td>
+            <td><%= link_to "アカウントを有効する", {controller: "user_manage", action: "update", id: user_manage_deactivate['id'] } %></td>  
+          </tr>
+        <% end %>                                    
+      </tbody>
+    </table>
+</div>
+</div>
+  <%= render 'leftpanel/leftpanel' %>
+</div>

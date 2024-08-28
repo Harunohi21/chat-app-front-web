@@ -1,0 +1,260 @@
+<% provide(:title, 'Star') %>
+<div id="main">
+  <h1 style="margin-left: 200px;">Star Lists</h1>
+
+  <div class="tab-container" style="margin-bottom: 20px;">
+    <div class="tab2" style="max-width: 922px;">
+      <button class="tablinks star-tab" onclick="openTab(event, 'DirectStar')">Direct Star Lists</button>
+      <button class="tablinks star-tab" onclick="openTab(event, 'DirectThreadsStar')">Direct Threads Star Lists</button>
+      <button class="tablinks star-tab" onclick="openTab(event, 'GroupStar')">Group Star Lists</button>
+      <button class="tablinks star-tab" onclick="openTab(event, 'GroupThreadsStar')">Group Thread Star Lists</button>
+    </div>
+  </div>
+
+  <div id="DirectStar" class="tabcontent">
+    <% if @direct_star.any? %>
+      <% @direct_star.each do |direct_star| %>
+        <% if direct_star['profile_image'].present? %>
+          <img src="<%= direct_star['profile_image'] %>" alt="Profile Image" class="profile-image" style="margin-left: 250px">
+        <% else %>
+          <div class="profile-placeholder" style="margin-left: 250px">
+            <%= direct_star['name'][0].upcase %>
+          </div>
+        <% end %>
+        <p class="style22"><%= direct_star['name'] %></p>
+        <p class="style23"><%= (direct_star['created_at'].to_time + 9.hours).strftime("%F/%I:%M%p")%></p>
+        <p class="style24"></p>
+        <%= link_to "", "", class:'fas fa-star' %>
+        <div class="style3" style="word-wrap: break-word; width: 550px"><%= render_html(direct_star['directmsg']) %></div>
+        <div class="reactionBox">
+          <% if @t_direct_react_msgids.include? direct_star['id'] %> <!-- Check if there is data in the table -->
+            <% @t_direct_msg_emojiscounts.each do |emoji_count| %>
+              <% userNames = [] %>
+              <% userIds = [] %>
+              <% if emoji_count["directmsgid"] == direct_star['id'] %>
+                <% @react_usernames.each do |react_userName| %>
+                  <% if emoji_count["directmsgid"] == react_userName["directmsgid"] && emoji_count["emoji"] == react_userName["emoji"] %>
+                    <% if react_userName["name"] == @current_user["name"] %>
+                      <% userNames << "#{react_userName["name"]}(自分)" %>
+                    <% else %>
+                      <% userNames << react_userName["name"] %>
+                    <% end %>
+                    <% userIds << react_userName["userid"] %>
+                  <% end %>   
+                <% end %>
+                <% if userIds.include? @current_user["id"] %>
+                  <button type="button" class="btnEmoji" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                    <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                  </button>
+                <% else %>
+                  <button type="button" class="btnEmoji1" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                    <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                  </button>
+                <% end %>
+              <% end %>
+            <% end %>
+          <% end %>
+        </div>
+        <hr>
+      <% end %>
+    <% else %>
+      <div class="no-data-container">
+        <p class="style2">No direct star message yet!</p>
+      </div>
+    <% end %>
+  </div>
+
+  <div id="DirectThreadsStar" class="tabcontent">
+    <% if @direct_star_thread.any? %>
+      <% @direct_star_thread.each do |direct_star_thread| %>
+        <% if direct_star_thread['profile_image'].present? %>
+          <img src="<%= direct_star_thread['profile_image'] %>" alt="Profile Image" class="profile-image" style="margin-left: 250px">
+        <% else %>
+          <div class="profile-placeholder" style="margin-left: 250px">
+            <%= direct_star_thread['name'][0].upcase %>
+          </div>
+        <% end %>
+        <p class="style22"><%= direct_star_thread['name'] %></p>
+        <p class="style23"><%= (direct_star_thread['created_at'].to_time + 9.hours).strftime("%F/%I:%M%p")%></p>
+        <p class="style24"></p>
+        <%= link_to "", "", class:'fas fa-star' %>
+        <div class="style3" style="word-wrap: break-word; width: 550px"><%= render_html(direct_star_thread['directthreadmsg']) %></div>
+        <div class="reactionBox">
+          <% if @t_direct_react_thread_msgids.include? direct_star_thread['id'] %> <!-- Check if there is data in the table -->
+            <% @t_direct_thread_emojiscounts.each do |emoji_count| %>
+              <% userNames = [] %>
+              <% userIds = [] %>
+              <% if emoji_count["directthreadid"] == direct_star_thread['id'] %>
+                <% @t_direct_thread_react_usernames.each do |react_userName| %>
+                  <% if emoji_count["directthreadid"] == react_userName["directthreadid"] && emoji_count["emoji"] == react_userName["emoji"] %>
+                    <% if react_userName["name"] == @current_user["name"] %>
+                      <% userNames << "#{react_userName["name"]}(自分)" %>
+                    <% else %>
+                      <% userNames << react_userName["name"] %>
+                    <% end %>
+                    <% userIds << react_userName["userid"] %>
+                  <% end %>   
+                <% end %>
+                <% if userIds.include? @current_user["id"] %>
+                  <button type="button" class="btnEmoji" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                    <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                  </button>
+                <% else %>
+                  <button type="button" class="btnEmoji1" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                    <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                  </button>
+                <% end %>
+              <% end %>
+            <% end %>
+          <% end %>
+        </div>
+        <hr>
+      <% end %>
+    <% else %>
+      <div class="no-data-container">
+        <p class="style2">No direct thread star message yet!</p>
+      </div>
+    <% end %>
+  </div>
+
+  <div id="GroupStar" class="tabcontent">
+    <% if @group_star.any? %>
+      <% @group_star.each do |group_star| %>
+        <h4 class="style2"><%= group_star['channel_name'] %></h4>
+        <% if group_star['profile_image'].present? %>
+          <img src="<%= group_star['profile_image'] %>" alt="Profile Image" class="profile-image" style="margin-left: 250px">
+        <% else %>
+          <div class="profile-placeholder" style="margin-left: 250px">
+            <%= group_star['name'][0].upcase %>
+          </div>
+        <% end %>
+        <p class="style22"><%= group_star['name'] %></p>
+        <p class="style23"><%= (group_star['created_at'].to_time + 9.hours).strftime("%F/%I:%M%p")%></p>
+        <p class="style24"></p>
+        <%= link_to "", "", class:'fas fa-star' %>
+        <div class="style3" style="word-wrap: break-word; width: 550px"><span><%= render_html(group_star['groupmsg']) %></span></div>
+        <div class="reactionBox">
+          <% if @t_group_react_msgids.include? group_star['id'] %> <!-- Check if there is data in the table -->
+            <% @group_emoji_counts.each do |emoji_count| %>
+              <% userNames = [] %>
+              <% userIds = [] %>
+              <% if emoji_count["groupmsgid"] == group_star['id'] %>
+                <% @group_react_usernames.each do |react_userName| %>
+                  <% if emoji_count["groupmsgid"] == react_userName["groupmsgid"] && emoji_count["emoji"] == react_userName["emoji"] %>
+                    <% if react_userName["name"] == @current_user["name"] %>
+                      <% userNames << "#{react_userName["name"]}(自分)" %>
+                    <% else %>
+                      <% userNames << react_userName["name"] %>
+                    <% end %>
+                    <% userIds << react_userName["userid"] %>
+                  <% end %>   
+                <% end %>
+                <% if userIds.include? @current_user["id"] %>
+                  <button type="button" class="btnEmoji" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                    <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                  </button>
+                <% else %>
+                  <button type="button" class="btnEmoji1" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                    <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                  </button>
+                <% end %>
+              <% end %>
+            <% end %>
+          <% end %>
+        </div>
+        <hr>
+      <% end %>
+    <% else %>
+      <div class="no-data-container">
+        <p class="style2">No group star message yet!</p>
+      </div>
+    <% end %>
+  </div>
+
+  <div id="GroupThreadsStar" class="tabcontent">
+    <% if @group_star_thread.any? %>
+      <% @group_star_thread.each do |group_star_thread| %>
+        <h4 class="style2"><%= group_star_thread['channel_name'] %></h4>
+        <% if group_star_thread['profile_image'].present? %>
+          <img src="<%= group_star_thread['profile_image'] %>" alt="Profile Image" class="profile-image" style="margin-left: 250px">
+        <% else %>
+          <div class="profile-placeholder" style="margin-left: 250px">
+            <%= group_star_thread['name'][0].upcase %>
+          </div>
+        <% end %>
+        <p class="style22"><%= group_star_thread['name'] %></p>
+        <p class="style23"><%= (group_star_thread['created_at'].to_time + 9.hours).strftime("%F/%I:%M%p")%></p>
+        <p class="style24"></p>
+        <%= link_to "", "", class:'fas fa-star' %>
+        <div class="style3" style="word-wrap: break-word; width: 550px"><%= render_html(group_star_thread['groupthreadmsg']) %></div>
+        <div class="reactionBox">
+          <% if @t_group_react_thread_msgids.include? group_star_thread['id'] %> <!-- Check if there is data in the table -->
+            <% @t_group_thread_emoji_counts.each do |emoji_count| %>
+              <% userNames = [] %>
+              <% userIds = [] %>
+              <% if emoji_count["groupthreadid"] == group_star_thread['id'] %>
+                <% @t_group_thread_react_usernames.each do |react_userName| %>
+                  <% if emoji_count["groupthreadid"] == react_userName["groupthreadid"] && emoji_count["emoji"] == react_userName["emoji"] %>
+                    <% if react_userName["name"] == @current_user["name"] %>
+                      <% userNames << "#{react_userName["name"]}(自分)" %>
+                    <% else %>
+                      <% userNames << react_userName["name"] %>
+                    <% end %>
+                    <% userIds << react_userName["userid"] %>
+                  <% end %>   
+                <% end %>
+                <% if userIds.include? @current_user["id"] %>
+                  <button type="button" class="btnEmoji" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                    <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                  </button>
+                <% else %>
+                  <button type="button" class="btnEmoji1" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                    <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                  </button>
+                <% end %>
+              <% end %>
+            <% end %>
+          <% end %>
+        </div>
+        <hr>
+      <% end %>
+    <% else %>
+      <div class="no-data-container">
+        <p class="style2">No group thread star message yet!</p>
+      </div>
+    <% end %>
+  </div>
+
+</div>
+
+<div>
+  <%= render 'leftpanel/leftpanel' %>
+</div>
+
+<script>
+  function openTab(evt, tabName) {
+    var i, tabcontent, tablinks;
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+      tabcontent[i].style.display = "none";
+    }
+    tablinks = document.getElementsByClassName("tablinks");
+    for (i = 0; i < tablinks.length; i++) {
+      tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelector('.tablinks').click();
+  });
+
+  // Initialize all tooltips
+  $(document).ready(function() {
+    $('[data-toggle="tooltip"]').tooltip(
+      {container:'body', trigger: 'hover', placement:"top"}
+    );
+  });
+</script>
+

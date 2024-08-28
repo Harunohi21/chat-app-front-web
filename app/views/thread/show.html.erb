@@ -1,0 +1,2106 @@
+<% provide(:title, "Thread") %>
+<div id="main">
+  <h1 style="margin-left: 200px;">Thread Lists</h1>
+
+  <div class="tab-container">
+    <div class="tab2">
+      <button class="tablinks" onclick="openTab(event, 'direct')">Direct Threads</button>
+      <button class="tablinks" onclick="openTab(event, 'group')">Group Threads</button>
+    </div>
+  </div>
+
+  <div id="direct" class="tabcontent">
+    <% if @t_direct_messages.any? %>
+      <% @t_direct_messages.each do |t_direct_message| %>
+        <div class="thread-container">
+
+          <% mainUser = "" %>
+          <% if t_direct_message["sender_id"] != @current_user_id %>
+            <% mainUser = t_direct_message["name"] %>
+          <% else %>
+            <% mainUser = t_direct_message["receiver_name"] %>
+          <% end %>
+
+          <h2 style="padding: 0px; margin-left: 14px;"><%= mainUser %></h2>
+
+          <% otherUser = "" %>
+          <% if t_direct_message["sender_id"] != @current_user_id %>
+            <% otherUser = t_direct_message["name"] %>
+          <% end %>
+
+          <% @t_direct_threads.each do |t_direct_thread| %>
+            <% if t_direct_message["id"] == t_direct_thread["t_direct_message_id"] %>
+              <% if @current_user_id != t_direct_thread["sender_id"] %>
+                <% otherUser = t_direct_thread["name"] %>
+              <% end %>
+            <% end %>
+          <% end %>
+
+          <% if otherUser == "" %>
+            <h5 class="groupthreadnames">自分のみ</h5>
+          <% else %>
+            <h5 class="groupthreadnames"> <%= otherUser %>さんとあなた </h5>
+          <% end %>
+
+          <% if t_direct_message["profile_image"].present? %>
+            <img src="<%= t_direct_message["profile_image"] %>" alt="Profile Image" class="profile-image" style="margin-left: 20px">
+          <% else %>
+            <div class="profile-placeholder" style="margin-left: 20px">
+              <%= t_direct_message["name"][0].upcase %>
+            </div>
+          <% end %>
+
+          <p class="style22" style="font-weight: bold;"><%= t_direct_message["name"] %></p>
+          <p class="style23"><%= (t_direct_message["created_at"].to_time + 9.hours).strftime("%F/%I:%M%p") %></p>
+          <p class="style24"></p>
+
+          <% if @t_direct_star_msgids.include?(t_direct_message["id"]) %>
+            <%= link_to "", "", class: "fas fa-star" %>
+          <% else %>
+            <%= link_to "", "", class: "far fa-star" %>
+          <% end %>
+
+          <div style="word-wrap: break-word; width: 550px; margin-left: 80px;">
+            <%= render_html(t_direct_message["directmsg"]) %>
+          </div>
+
+          <div class="reactionBoxList">
+            <% if @t_direct_react_msgids.include? t_direct_message["id"] %>
+              <% @t_direct_msg_emojiscounts.each do |emoji_count| %>
+                <% userNames = [] %>
+                <% userIds = [] %>
+                <% if emoji_count["directmsgid"] == t_direct_message["id"] %>
+                  <% @react_usernames.each do |react_userName| %>
+                    <% if emoji_count["directmsgid"] == react_userName["directmsgid"] && emoji_count["emoji"] == react_userName["emoji"] %>
+                      <% if react_userName["name"] == @current_user["name"] %>
+                        <% userNames << "#{react_userName["name"]}(自分)" %>
+                      <% else %>
+                        <% userNames << react_userName["name"] %>
+                      <% end %>
+                      <% userIds << react_userName["userid"] %>
+                    <% end %>
+                  <% end %>
+                  <% if userIds.include? @current_user["id"] %>
+                    <button type="button" class="btnEmoji" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                      <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                    </button>
+                  <% else %>
+                    <button type="button" class="btnEmoji1" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                      <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                    </button>
+                  <% end %>
+                <% end %>
+              <% end %>
+            <% end %>
+          </div>
+
+          <div style="margin-left: 80px;" id="pass-file-item" data-message="<%= t_direct_message.to_json %>" style="display: none;"></div>
+          <div id="overlay" class="overlay"></div>
+          <div id="image-dialog" class="dialog-container">
+            <div id="dialog-filename" class="dialog-filename"></div>
+            <div class="dialog-close-container">
+              <span id="dialog-close" class="dialog-close">&times;</span>
+            </div>
+            <div class="dialog-content">
+              <img id="full-image" src="" alt="Full Image">
+            </div> 
+          </div>
+
+          <div style="margin-left: 50px">
+            <h2 style="padding-top: 0px;">Reply</h2>
+            <% @count = 0 %>
+            <% thread_replies = @t_direct_threads.select { |t| t["t_direct_message_id"] == t_direct_message["id"] } %>
+            <% total_replies = thread_replies.count %>
+
+            <% if total_replies > 3 %>
+              <p><a href="#" class="show-more-replies" message-id="<%= t_direct_message["id"] %>"><%= total_replies - 2 %> 件のそのそ他の返信を表示</a></p>
+            <% end %>
+
+            <div class="replies-container" id="replies-<%= t_direct_message["id"] %>">
+              <% thread_replies.each_with_index do |direct_thread, index| %>
+                <% show_reply = if total_replies > 3
+                                  index >= total_replies - 2
+                                else
+                                  index >= total_replies - 3
+                                end %>
+                <div class="reply <%= show_reply ? '' : 'hidden-reply' %>">
+                  <% if direct_thread['profile_image'].present? %>
+                    <img src="<%= direct_thread['profile_image'] %>" alt="Profile Image" class="profile-image" style="margin-left: 20px">
+                  <% else %>
+                    <div class="profile-placeholder" style="margin-left: 20px">
+                      <%= direct_thread["name"][0].upcase %>
+                    </div>
+                  <% end %>
+                  <p class="style22" style="font-weight: bold;"><%= direct_thread['name'] %></p>
+                  <p class="style23"><%= (direct_thread['created_at'].to_time + 9.hours).strftime("%F/%I:%M%p") %></p>
+                  <p class="style24"></p>
+                  <% if @t_direct_star_thread_msgids.include?(direct_thread['id']) %>
+                    <%= link_to "", "", class: 'fas fa-star' %>
+                  <% else %>
+                    <%= link_to "", "", class: 'far fa-star' %>
+                  <% end %>
+                  <div class="style3" style="word-wrap: break-word; width: 550px; margin-left: 80px;">
+                    <%= render_html(direct_thread["directthreadmsg"]) %>
+                  </div>
+                  <div class="reactionBoxList">
+                    <% if @t_direct_react_thread_msgids.include? direct_thread["id"] %>
+                      <% @t_direct_thread_emojiscounts.each do |emoji_count| %>
+                        <% userNames = [] %>
+                        <% userIds = [] %>
+                        <% if emoji_count["directthreadid"] == direct_thread["id"] %>
+                          <% @t_direct_thread_react_usernames.each do |react_userName| %>
+                            <% if emoji_count["directthreadid"] == react_userName["directthreadid"] && emoji_count["emoji"] == react_userName["emoji"] %>
+                              <% if react_userName["name"] == @current_user["name"] %>
+                                <% userNames << "#{react_userName["name"]}(自分)" %>
+                              <% else %>
+                                <% userNames << react_userName["name"] %>
+                              <% end %>
+                              <% userIds << react_userName["userid"] %>
+                            <% end %>
+                          <% end %>
+                          <% if userIds.include? @current_user["id"] %>
+                            <button type="button" class="btnEmoji" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                              <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                            </button>
+                          <% else %>
+                            <button type="button" class="btnEmoji1" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                              <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                            </button>
+                          <% end %>
+                        <% end %>
+                      <% end %>
+                    <% end %>
+                  </div>
+
+                  <div style="margin-left: 80px;" id="file-item-<%= direct_thread["id"] %>" style="display: none;"></div>
+                  <div id="overlay" class="overlay"></div>
+                  <div id="image-dialog" class="dialog-container">
+                    <div id="dialog-filename" class="dialog-filename"></div>
+                    <div class="dialog-close-container">
+                      <span id="dialog-close" class="dialog-close">&times;</span>
+                    </div>
+                    <div class="dialog-content">
+                      <img id="full-image" src="" alt="Full Image">
+                    </div>
+                  </div> 
+                </div>
+              <% end %>
+            </div>
+          </div>
+
+          <div class="textboxbg2">
+            <div class="textboxeditor2">
+              <div class="toolbar" id="toolbar-<%= t_direct_message['id'] %>">
+                <button class="ql-bold disable"></button>
+                <button class="ql-italic disable"></button>
+                <button class="ql-strike disable"></button>
+                <button class="ql-link disable"></button>
+                <button class="ql-list" value="ordered"></button>
+                <button class="ql-list" value="bullet"></button>
+                <button class="ql-blockquote"></button>
+                <button class="ql-code-block d-code-block"><i class="fas fa-code"></i></button>
+                <button id="highlight-text-<%= t_direct_message['id'] %>" class="btn-icon disable"><i class="fas fa-laptop-code"></i></button>
+              </div>
+              
+              <div class="link-dialog" id="link-dialog-<%= t_direct_message["id"] %>" style="display: none;">
+                <h3 id="link-title">Add your link</h3>
+                <input type="text" id="link-name-<%= t_direct_message["id"] %>" placeholder="Enter link name">
+                <input type="text" id="link-url-<%= t_direct_message["id"] %>" placeholder="Enter URL">
+                <button id="link-cancel-<%= t_direct_message["id"] %>">Cancel</button>
+                <button id="link-save-<%= t_direct_message["id"] %>">Yes</button>
+              </div>
+
+              <div id="file-container-<%= t_direct_message['id'] %>" style="display: none; margin-top: 10px;"></div>
+
+              <%= form_for(:session, url: directthreadmsgdirectly_path) do |f| %>
+                <div class="col-md-11">
+                  <div class="editor" id="editor-<%= t_direct_message['id'] %>" data-direct-message-id="<%= t_direct_message['id'] %>"></div>
+                  <%= f.hidden_field :message, id: "quill-content-#{t_direct_message['id']}" %>
+                  <%= f.hidden_field :t_direct_message_id, value: t_direct_message['id'], class: "dm-id" %>
+                  <%= f.hidden_field :t_directmsg_sender_id, value: t_direct_message['sender_id'], id: "senderId-#{t_direct_message['id']}" %>
+                </div>
+                <div class="col-md-1 mt-10">
+                  <%= f.submit "Send", class: "btn btn-primary", id: "sendbtn-#{t_direct_message["id"]}" %>
+                </div>
+
+                <div class="col-md-11">
+                  <%= f.file_field :file, id: "file_input_#{t_direct_message['id']}", style: 'display: none;', multiple: true %>
+                  <span onclick="document.querySelector(`#file_input_<%= t_direct_message['id'] %>`).click();">
+                    <i class="fas fa-plus"></i>
+                  </span>
+                  <button class="glyphicon glyphicon-font icon togglebtn" id="toggle-toolbar-<%= t_direct_message['id'] %>"></button>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="no-data-container">
+        <p class="style2">No direct thread yet!</p>
+      </div>
+    <% end %>
+  </div>
+
+  <div id="group" class="tabcontent">
+    <% if @t_group_messages.any? %>
+      <% @t_group_messages.each do |t_group_message| %>
+      <div class="thread-container">
+        <h2 style="padding: 0px; margin-left: 14px;"><%= t_group_message["channel_name"] %></h2>
+
+        <% sendUserNames = [] %>
+        <% loginUserName = "" %>
+
+        <% if t_group_message["m_user_id"] != @current_user_id %>
+          <% sendUserNames.unshift(t_group_message["name"]) %>
+        <% else %>
+          <% loginUserName = "とあなた" %>
+        <% end %>
+
+        <% @t_group_threads.each do |t_group_thread| %>
+          <% if t_group_message["id"] == t_group_thread["t_group_message_id"] %>
+            <% if @current_user_id != t_group_thread["m_user_id"] %>
+              <% sendUserNames.unshift(t_group_thread["name"]) %>
+            <% else %>
+              <% loginUserName = "とあなた" %>
+            <% end %>
+          <% end %>
+        <% end %>
+        <% sendUserNames = sendUserNames | [] %>
+        <% if sendUserNames.length == 0 %>
+          <h5 class="groupthreadnames">自分のみ</h5>
+        <% else %>
+          <h5 class="groupthreadnames">
+          <%= (sendUserNames.join("さん、") + "さん、" + loginUserName) %>
+          </h5>
+        <% end %>
+
+        <% if t_group_message["profile_image"].present? %>
+          <img src="<%= t_group_message["profile_image"] %>" alt="Profile Image" class="profile-image" style="margin-left: 20px">
+        <% else %>
+          <div class="profile-placeholder" style="margin-left: 20px">
+            <%= t_group_message["name"][0].upcase %>
+          </div>
+        <% end %>
+        <p class="style22" style="font-weight: bold;"><%= t_group_message['name'] %></p>
+        <p class="style23"><%= (t_group_message['created_at'].to_time + 9.hours).strftime("%F/%I:%M%p") %></p>
+        <p class="style24"></p>
+        <% if @t_group_star_msgids.include?(t_group_message['id']) %>
+          <%= link_to "", "", class: 'fas fa-star' %>
+        <% else %>
+          <%= link_to "", "", class: 'far fa-star' %>
+        <% end %>
+        <div class="style3" style="word-wrap: break-word; width: 550px; margin-left: 80px;">
+          <%= render_html(t_group_message["groupmsg"]) %>
+        </div>
+        <div class="reactionBoxList">
+          <% if @t_group_react_msgids.include? t_group_message['id'] %>
+            <% @group_emoji_counts.each do |emoji_count| %>
+              <% userNames = [] %>
+              <% userIds = [] %>
+              <% if emoji_count["groupmsgid"] == t_group_message['id'] %>
+                <% @group_react_usernames.each do |react_userName| %>
+                  <% if emoji_count["groupmsgid"] == react_userName["groupmsgid"] && emoji_count["emoji"] == react_userName["emoji"] %>
+                    <% if react_userName["name"] == @current_user["name"] %>
+                      <% userNames << "#{react_userName["name"]}(自分)" %>
+                    <% else %>
+                      <% userNames << react_userName["name"] %>
+                    <% end %>
+                    <% userIds << react_userName["userid"] %>
+                  <% end %>   
+                <% end %>
+                <% if userIds.include? @current_user["id"] %>
+                  <button type="button" class="btnEmoji" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                    <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                  </button>
+                <% else %>
+                  <button type="button" class="btnEmoji1" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                    <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                  </button>
+                <% end %>
+              <% end %>
+            <% end %>
+          <% end %>
+        </div>
+
+        <div style="margin-left: 80px;" id="g-pass-file-item" data-message="<%= t_group_message.to_json %>" style="display: none;"></div>
+        <div id="g-overlay" class="overlay"></div>
+        <div id="g-image-dialog" class="dialog-container">
+          <div id="g-dialog-filename" class="dialog-filename"></div>
+          <div class="dialog-close-container">
+            <span id="g-dialog-close" class="dialog-close">&times;</span>
+          </div>
+          <div class="dialog-content">
+            <img id="g-full-image" src="" alt="Full Image">
+          </div>
+        </div>
+
+        <div style="margin-left: 50px">
+          <h2 style="padding-top: 0px;">Reply</h2>
+          <% @count = 0 %>
+          <% thread_replies = @t_group_threads.select { |t| t["t_group_message_id"] == t_group_message["id"] } %>
+          <% total_replies = thread_replies.count %>
+
+          <% if total_replies > 3 %>
+            <p><a href="#" class="g-show-more-replies" message-id="<%= t_group_message["id"] %>"><%= total_replies - 2 %> 件のそのそ他の返信を表示</a></p>
+          <% end %>
+          <div class="replies-container" id="g-replies-<%= t_group_message["id"] %>">
+            <% thread_replies.each_with_index do |group_thread, index| %>
+              <% show_reply = if total_replies > 3
+                                index >= total_replies - 2
+                              else
+                                index >= total_replies - 3
+                              end %>
+              <div class="reply <%= show_reply ? '' : 'hidden-reply' %>">
+                <% if group_thread['profile_image'].present? %>
+                  <img src="<%= group_thread['profile_image'] %>" alt="Profile Image" class="profile-image" style="margin-left: 20px">
+                <% else %>
+                  <div class="profile-placeholder" style="margin-left: 20px">
+                    <%= group_thread["name"][0].upcase %>
+                  </div>
+                <% end %>
+                <p class="style22" style="font-weight: bold;"><%= group_thread['name'] %></p>
+                <p class="style23"><%= (group_thread['created_at'].to_time + 9.hours).strftime("%F/%I:%M%p") %></p>
+                <p class="style24"></p>
+                <% if @t_group_star_thread_msgids.include?(group_thread['id']) %>
+                  <%= link_to "", "", class: 'fas fa-star' %>
+                <% else %>
+                  <%= link_to "", "", class: "far fa-star" %>
+                <% end %>
+                
+                <div class="style3" style="word-wrap: break-word; width: 550px; margin-left: 80px;">
+                  <%= render_html(group_thread["groupthreadmsg"]) %>
+                </div>
+                <div class="reactionBoxList">
+                  <% if @t_group_react_thread_msgids.include? group_thread['id'] %>
+                    <% @t_group_thread_emoji_counts.each do |emoji_count| %>
+                      <% userNames = [] %>
+                      <% userIds = [] %>
+                      <% if emoji_count["groupthreadid"] == group_thread['id'] %>
+                        <% @t_group_thread_react_usernames.each do |react_userName| %>
+                          <% if emoji_count["groupthreadid"] == react_userName["groupthreadid"] && emoji_count["emoji"] == react_userName["emoji"] %>
+                            <% if react_userName["name"] == @current_user["name"] %>
+                              <% userNames << "#{react_userName["name"]}(自分)" %>
+                            <% else %>
+                              <% userNames << react_userName["name"] %>
+                            <% end %>
+                            <% userIds << react_userName["userid"] %>
+                          <% end %>   
+                        <% end %>
+                        <% if userIds.include? @current_user["id"] %>
+                          <button type="button" class="btnEmoji" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                            <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                          </button>
+                        <% else %>
+                          <button type="button" class="btnEmoji1" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" disabled>
+                            <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", "", style: "text-decoration:none; pointer-events: none; color: grey;" %>
+                          </button>
+                        <% end %>
+                      <% end %>
+                    <% end %>
+                  <% end %>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+
+                <div style="margin-left: 80px;" id="g-file-item-<%= group_thread["id"] %>" style="display: none;"></div>
+                <div id="g-overlay" class="overlay"></div>
+                <div id="g-image-dialog" class="dialog-container">
+                  <div id="g-dialog-filename" class="dialog-filename"></div>
+                  <div class="dialog-close-container">
+                    <span id="g-dialog-close" class="dialog-close">&times;</span>
+                  </div>
+                  <div class="dialog-content">
+                    <img id="g-full-image" src="" alt="Full Image">
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="textboxbg2">
+          <div class="textboxeditor2">
+            <div class="toolbar" id="g-toolbar-<%= t_group_message['id'] %>">
+              <button class="ql-bold disable"></button>
+              <button class="ql-italic disable"></button>
+              <button class="ql-strike disable"></button>
+              <button class="ql-link disable"></button>
+              <button class="ql-list" value="ordered"></button>
+              <button class="ql-list" value="bullet"></button>
+              <button class="ql-blockquote"></button>
+              <button class="ql-code-block" id="g-code-block-<%= t_group_message['id'] %>"><i class="fas fa-code"></i></button>
+              <button id="g-highlight-text-<%= t_group_message['id'] %>" class="btn-icon disable"><i class="fas fa-laptop-code"></i></button>
+            </div>
+
+            <div class="link-dialog" id="g-link-dialog-<%= t_group_message['id'] %>" style="display: none;">
+              <h3 id="link-title">Add your link</h3>
+              <input type="text" id="g-link-name-<%= t_group_message["id"] %>" placeholder="Enter link name">
+              <input type="text" id="g-link-url-<%= t_group_message["id"] %>" placeholder="Enter URL">
+              <button id="g-link-cancel-<%= t_group_message["id"] %>">Cancel</button>
+              <button id="g-link-save-<%= t_group_message["id"] %>">Yes</button>
+            </div>
+
+            <div id="g-file-container-<%= t_group_message['id'] %>" style="display: none; margin-top: 10px;"></div>
+
+            <%= form_for(:session, url: groupthreadmsgdirectly_path) do |f| %>
+              <div class="col-md-11">
+                <div class="editor" id="g-editor-<%= t_group_message['id'] %>" data-group-message-id="<%= t_group_message['id'] %>"
+                data-autocomplete-source="<%= t_group_message['channel_users'].map { |t| { label: '@' + t } }.to_json %>"></div>
+                <%= f.hidden_field :message, id: "g-quill-content-#{t_group_message['id']}" %>
+                <%= f.hidden_field :t_group_message_id, value: t_group_message['id'] %>
+                <%= f.hidden_field :t_channel_id, value: t_group_message['channel_id'], id: "channelId-#{t_group_message['id']}" %>
+                <%= f.hidden_field :mention_name, class: 'mention_name', id: "mention-#{t_group_message['id']}" %>
+              </div>
+              <div class="col-md-1 mt-10">
+                <%= f.submit "Send", class: "btn btn-primary", id: "g-sendbtn-#{t_group_message["id"]}" %>
+              </div>
+
+              <div class="col-md-11">
+                <%= f.file_field :file, id: "g_file_input_#{t_group_message['id']}", style: 'display: none;', multiple: true %>
+                <span onclick="document.querySelector(`#g_file_input_<%= t_group_message['id'] %>`).click();">
+                  <i class="fas fa-plus"></i>
+                </span>
+                <button class="glyphicon glyphicon-font icon togglebtn" id="g-toggle-toolbar-<%= t_group_message['id'] %>"></button>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+      <% end %>
+    <% else %>
+      <div class="no-data-container">
+        <p class="style2">No group thread yet!</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<div>
+  <%= render "leftpanel/leftpanel" %>
+</div>
+
+<script>
+  // tab button function
+  function openTab(evt, tabName) {
+    var i, tabcontent, tablinks;
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+      tabcontent[i].style.display = "none";
+    }
+    tablinks = document.getElementsByClassName("tablinks");
+    for (i = 0; i < tablinks.length; i++) {
+      tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelector('.tablinks').click();
+  });
+
+  // show more replies for direct
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.show-more-replies').forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        var messageId = this.getAttribute('message-id');
+        var repliesContainer = document.getElementById('replies-' + messageId);
+        repliesContainer.querySelectorAll('.hidden-reply').forEach(function(reply) {
+          reply.classList.remove('hidden-reply');
+        });
+        this.style.display = 'none';
+      });
+    });
+  });
+
+  // show more replies for group
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.g-show-more-replies').forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        var messageId = this.getAttribute('message-id');
+        var repliesContainer = document.getElementById('g-replies-' + messageId);
+        repliesContainer.querySelectorAll('.hidden-reply').forEach(function(reply) {
+          reply.classList.remove('hidden-reply');
+        });
+        this.style.display = 'none';
+      });
+    });
+  });
+
+  // adjust text box height functions
+  function adjustTextboxHeight(div, additionalHeight = 0) {
+    var newHeight = 50 + additionalHeight;
+    var editorContainer = div.querySelector('.ql-editor');
+    var lineHeight = parseInt(window.getComputedStyle(editorContainer).lineHeight);
+    newHeight += editorContainer.scrollHeight + lineHeight;
+    div.style.height = `${newHeight}px`;
+  }
+
+  function adjustTextBoxWithMoreFiles(fileContainer) {
+    if (fileContainer.scrollHeight == 72) {
+      adjustTextboxHeight(fileContainer.closest('.textboxeditor2'), 80);
+    } else if (fileContainer.scrollHeight <= 144) {
+      adjustTextboxHeight(fileContainer.closest('.textboxeditor2'), 150);
+    } else if (fileContainer.scrollHeight > 144) {
+      adjustTextboxHeight(fileContainer.closest('.textboxeditor2'), 220);
+    }
+  }
+
+  // quill editor start here
+  // highlight
+  var Inline = Quill.import('blots/inline');
+  class HighlightBlot extends Inline {
+    static create(value) {
+      let node = super.create();
+      node.setAttribute('class', 'highlight');
+      return node;
+    }
+
+    static formats(node) {
+      return node.getAttribute('class');
+    }
+  }
+  HighlightBlot.blotName = 'highlight';
+  HighlightBlot.tagName = 'span';
+  Quill.register(HighlightBlot);
+
+  document.addEventListener("DOMContentLoaded", function() {
+    const toolbarOptions = [
+      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+      ['bold', 'italic', 'strike'],
+      ['link'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['blockquote', 'code-block'],
+    ];
+
+    // Get all the direct message IDs
+    var directMessageIds = Array.from(document.querySelectorAll('[data-direct-message-id]')).map(container => container.dataset.directMessageId);
+    // Get all the group message IDs
+    var groupMessageIds = Array.from(document.querySelectorAll('[data-group-message-id]')).map(container => container.dataset.groupMessageId);
+
+    // for direct
+    directMessageIds.forEach(function(messageId) {
+      var quill = new Quill(`#editor-${messageId}`, {
+        modules: {
+          toolbar: {
+            container: `#toolbar-${messageId}`,
+            handlers: {
+              link: function() {
+                var range = this.quill.getSelection();
+                if (range) {
+                  showLinkDialog(range, messageId);
+                }
+              },
+            }
+          }
+        },
+        placeholder: 'Type your message here ...',
+        theme: 'snow'
+      });
+
+      quill.setText('');
+      quill.update();
+
+      // highlight start
+      var isHighlighting = false;
+      var highlightTextBtn = document.querySelector(`#highlight-text-${messageId}`);
+      function updateButtonText() {
+        if (isHighlighting) {
+          highlightTextBtn.classList.add('active');
+        } else {
+          highlightTextBtn.classList.remove('active');
+        }
+      }
+
+      function toggleHighlight() {
+        var format = quill.getFormat();
+        if (format.highlight) {
+          quill.format('highlight', false);
+          isHighlighting = false;
+        } else {
+          quill.format('highlight', true);
+          isHighlighting = true;
+        }
+        updateButtonText();
+        quill.focus();
+      }
+
+      var hiddenInput = document.querySelector(`#quill-content-${messageId}`);
+      quill.on('text-change', function() {
+        if (hiddenInput) {
+          hiddenInput.value = quill.root.innerHTML;
+          var format = quill.getFormat();
+          isHighlighting = !!format.highlight;
+          updateButtonText();
+        } else {
+          console.log('Hidden input not found');
+        }
+      });
+
+      highlightTextBtn.addEventListener('click', function() {
+          toggleHighlight();
+        var htmlContent = quill.getSemanticHTML();
+        document.querySelector(`#quill-content-${messageId}`).value = htmlContent;
+      });
+      updateButtonText();
+      // highlight end
+
+      // codeblock and highlight btn status
+      quill.container.firstChild.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+          isHighlighting = false;
+          updateButtonText();
+        }
+      });
+
+      // for link dialog
+      var linkDialog = document.getElementById(`link-dialog-${messageId}`);
+      var range = quill.getSelection();
+      quill.on('selection-change', function(range, oldRange, source) {
+        if (range && range.length > 0) {
+          var selectedText = quill.getText(range.index, range.length);
+          if (selectedText) {
+            $(`#toolbar-${messageId}`).removeClass("hidden");
+          }
+          $(`#link-name-${messageId}`).val(selectedText);
+        }
+      });
+
+      function showLinkDialog(range) {
+        linkDialog.style.display = 'block';
+        document.querySelector(`#link-name-${messageId}`).focus();
+        document.querySelector(`#link-url-${messageId}`).value = 'https://';
+        document.querySelector(`#link-save-${messageId}`).onclick = function() {
+          var linkText = document.querySelector(`#link-name-${messageId}`).value;
+          var linkUrl = document.querySelector(`#link-url-${messageId}`).value;
+          if (linkText && linkUrl) {
+            quill.insertText(range.index, linkText,'link', linkUrl);
+            if (range.length > 0) {
+              quill.deleteText(range.index + linkText.length, range.length);
+            }
+            quill.setSelection(range.index + linkText.length, 0);
+            hideLinkDialog(messageId);
+          }
+        };
+        document.getElementById(`link-cancel-${messageId}`).onclick = function() {
+          hideLinkDialog(messageId);
+        };
+      }
+
+      function hideLinkDialog(messageId) {
+        linkDialog.style.display = 'none';
+        document.querySelector(`#link-name-${messageId}`).value = '';
+        document.querySelector(`#link-url-${messageId}`).value = '';
+      }
+
+      // Prevent Quill from losing focus when clicking inside the dialog
+      document.querySelector(`#link-dialog-${messageId}`).addEventListener('mousedown', function(event) {
+        event.stopPropagation();
+      });
+
+      // for toggle toolbar
+      var toolbarui = document.getElementById(`toolbar-${messageId}`);
+      var toggleButton = document.getElementById(`toggle-toolbar-${messageId}`);
+      toggleButton.addEventListener('click', function() {
+        toolbarui.classList.toggle('hidden');
+      });
+
+      var form = document.querySelector(`#quill-content-${messageId}`).closest('form');
+      form.addEventListener('submit', function(event) {
+        var htmlContent = quill.getSemanticHTML();
+        var quillContent = document.querySelector(`#quill-content-${messageId}`);
+        htmlContent = htmlContent.replace(/<pre([^>]*)data-language="plain"([^>]*)>([\s\S]*?)<\/pre>/g, function(match, attr1, attr2, content) {
+          content = content.trim().replace(/\n/g, '<br>');
+          return `<div${attr1}class="ql-code-block"${attr2}>${content}</div>`;
+        });
+        htmlContent = htmlContent.replace(/<\/blockquote>\s*<blockquote>/g, '<br>');
+        htmlContent = htmlContent.replace(/<\/p><p>/g, '<br>').replace(/<\/?p[^>]*>/g, '');
+        quillContent.value = htmlContent;
+
+        var files = document.querySelector(`#file_input_${messageId}`).files;
+        if(files.length > 0) {
+          event.preventDefault();
+          var messageContent = quillContent.value.trim();
+          var senderId = document.querySelector(`#senderId-${messageId}`).value;
+          var formData = {
+            session: {
+              message: messageContent,
+              t_direct_message_id: messageId,
+              t_directmsg_sender_id: senderId,
+            }
+          };
+          sendFormData(formData);
+        }
+      });
+
+      // validate btn
+      var sendbtn = document.querySelector(`#sendbtn-${messageId}`);
+      sendbtn.disabled = true;
+      quill.on('text-change', function(delta, oldDelta, source) {
+        hiddenInput.value = quill.root.innerHTML;
+        checkSendButton();
+      });
+
+      // showing files in file container
+      var fileInput = document.querySelector(`#file_input_${messageId}`);
+      var imageDialog = document.getElementById('image-dialog');
+      var dialogFilename = document.getElementById('dialog-filename');
+      var fullImage = document.getElementById('full-image');
+      var dialogClose = document.getElementById('dialog-close');
+      var overlay = document.getElementById('overlay');
+      var fileContainer = document.getElementById(`file-container-${messageId}`);
+
+      const editor = document.querySelector(`#editor-${messageId}`);
+      editor.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === 'Backspace') {
+          if(fileInput.files.length === 0) {
+            adjustTextboxHeight(editor.closest('.textboxeditor2'));
+          } else {
+            adjustTextBoxWithMoreFiles(fileContainer);
+          }
+        }
+      });
+      editor.addEventListener('input', () => {
+        if(fileInput.files.length === 0) {
+            adjustTextboxHeight(editor.closest('.textboxeditor2'));
+        } else {
+          adjustTextBoxWithMoreFiles(fileContainer);
+        }
+      });
+      editor.addEventListener('paste', () => {
+        setTimeout(() => {
+          if(fileInput.files.length === 0) {
+            adjustTextboxHeight(editor.closest('.textboxeditor2'));
+          } else {
+            adjustTextBoxWithMoreFiles(fileContainer);
+          }
+        }, 0);
+      });
+
+      document.querySelectorAll('.d-code-block').forEach(block => {
+        block.addEventListener('click', () => {
+          if(fileInput.files.length === 0) {
+              adjustTextboxHeight(editor.closest('.textboxeditor2'), 25);
+            } else {
+              if (fileContainer.scrollHeight == 72) {
+                adjustTextboxHeight(fileContainer.closest('.textboxeditor2'), 80);
+              } else if (fileContainer.scrollHeight <= 144) {
+                adjustTextboxHeight(fileContainer.closest('.textboxeditor2'), 150);
+              } else if (fileContainer.scrollHeight > 144) {
+                adjustTextboxHeight(fileContainer.closest('.textboxeditor2'), 220);
+              }
+            }
+        });
+      });
+
+      function checkSendButton() {
+        var editorContent = quill.getText().trim();
+        var files = fileInput.files;
+        if(editorContent.length === 0 && files.length === 0) {
+          sendbtn.disabled = true;
+        } else {
+          sendbtn.disabled = false;
+        }
+      }
+
+      function updateFileInput(index) {
+        const dt = new DataTransfer();
+        const files = fileInput.files;
+        for (let i = 0; i < files.length; i++) {
+          if (i !== index) {
+            dt.items.add(files[i]);
+          }
+        }
+        fileInput.files = dt.files;
+      }
+
+      var dt = new DataTransfer();
+      for (var j = 0; j < fileInput.files.length; j++) {
+        dt.items.add(fileInput.files[j]);
+      }
+      fileInput.files = dt.files;
+
+      fileInput.addEventListener('change', function(event) {
+        const newFiles = event.target.files;
+        if(newFiles.length > 0) {
+          fileContainer.style.display = 'flex';
+          fileContainer.style.flexWrap = 'wrap';
+          for (var i = 0; i < newFiles.length; i++) {
+            (function(file, index) {
+              dt.items.add(file);
+              fileInput.files = dt.files;
+              // Create a container for each file
+              var fileDiv = document.createElement('div');
+              fileDiv.classList.add('file-item');
+
+              // Create a remove button
+              var removeBtn = document.createElement('span');
+              removeBtn.classList.add('remove-btn');
+              removeBtn.innerHTML = '&times;';
+
+              (function(div, idx) {
+                removeBtn.addEventListener('click', function() {
+                  div.remove();
+                  updateFileInput(idx);
+                  checkSendButton();
+                  if(fileInput.files.length === 0) {
+                    adjustTextboxHeight(editor.closest('.textboxeditor2'));
+                  }
+                });
+              })(fileDiv, index);
+
+              // Check if the file is an image
+              if (file.type.startsWith('image/')) {
+                var img = document.createElement('img');
+                img.classList.add('file-image');
+
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                  img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+                fileDiv.style.padding = '0px';
+                fileDiv.style.width = '60px';
+                fileDiv.style.height = '60px';
+                fileDiv.appendChild(img);
+                fileDiv.appendChild(removeBtn);
+
+                img.addEventListener('click', function() {
+                  fullImage.src = img.src;
+                  dialogFilename.textContent = file.name;
+                  imageDialog.style.display = 'flex';
+                  overlay.style.display = 'block';
+                });
+              } else {
+                // Create a small container for the file initial
+                var initialDiv = document.createElement('div');
+                initialDiv.classList.add('file-initial');
+
+                // Determine the content and background color based on file type
+                var fileType = file.type.split('/')[1];
+                if (fileType === 'vnd.openxmlformats-officedocument.spreadsheetml.sheet' || fileType === 'vnd.ms-excel') {
+                  initialDiv.textContent = 'X';
+                  initialDiv.style.backgroundColor = 'green';
+                } else if (fileType === 'plain') {
+                  initialDiv.textContent = 'T';
+                  initialDiv.style.backgroundColor = 'blue';
+                } else if (fileType === 'x-zip-compressed') {
+                  initialDiv.innerHTML = '<i class="fas fa-file-zipper"></i>';
+                  initialDiv.style.backgroundColor = 'blue';
+                } else if (fileType === 'pdf') {
+                  initialDiv.innerHTML = '<i class="fas fa-file-pdf"></i>';
+                  initialDiv.style.backgroundColor = 'red';
+                } else if (fileType === 'vnd.ms-powerpoint') {
+                  initialDiv.textContent = 'P';
+                  initialDiv.style.backgroundColor = 'red';
+                } else {
+                  initialDiv.innerHTML = '<i class="fas fa-file-alt"></i>';
+                  initialDiv.style.backgroundColor = 'blue';
+                }
+
+                // Create a div for the file details
+                var detailsDiv = document.createElement('div');
+                detailsDiv.classList.add('file-details');
+
+                // Create elements for the file details
+                var filenameSpan = document.createElement('span');
+                filenameSpan.classList.add('filename-span');
+                filenameSpan.textContent = file.name;
+
+                var filesizeSpan = document.createElement('span');
+                filesizeSpan.textContent = file.size < (1024 * 1024)
+                  ? (file.size / 1024).toFixed(2) + ' KB'
+                  : (file.size / (1024 * 1024)).toFixed(2) + ' MB'; // File size in KB or MB
+                filesizeSpan.style.display = 'block';
+
+                // Append file details to the detailsDiv
+                detailsDiv.appendChild(filenameSpan);
+                detailsDiv.appendChild(filesizeSpan);
+
+                // Append all to fileDiv
+                fileDiv.appendChild(removeBtn);
+                fileDiv.appendChild(initialDiv);
+                fileDiv.appendChild(detailsDiv);
+              }
+              fileContainer.appendChild(fileDiv);
+            }) (newFiles[i], i);
+          }
+          adjustTextBoxWithMoreFiles(fileContainer);
+        } else {
+          fileContainer.style.display = 'none';
+        }
+        checkSendButton();
+      });
+
+      dialogClose.addEventListener('click', function() {
+        imageDialog.style.display = 'none';
+        overlay.style.display = 'none';
+      });
+
+      // Hide the dialog when clicking outside the image
+      imageDialog.addEventListener('click', function(event) {
+        if (event.target === imageDialog) {
+          imageDialog.style.display = 'none';
+          overlay.style.display = 'none';
+        }
+      });
+
+      overlay.addEventListener('click', function() {
+        imageDialog.style.display = 'none';
+        overlay.style.display = 'none'; // Hide the overlay
+      });
+
+      // Function to convert files to JSON data
+      function filesToJSON(callback) {
+        const fileInput = document.querySelector(`#file_input_${messageId}`);
+        const files = fileInput.files;
+        const filesArray = [];
+        let filesProcessed = 0;
+        if (files.length === 0) {
+          callback([]);
+          return;
+        }
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            filesArray.push({
+              data: e.target.result.split(',')[1],
+              mime: file.type,
+              file_name: file.name
+            });
+            filesProcessed++;
+            if (filesProcessed === files.length) {
+              callback(filesArray);
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+
+      // Function to handle form submission with files
+      function sendFormData(formData) {
+        filesToJSON(function(filesArray) {
+          formData['session']['files'] = filesArray;
+          $.ajax({
+            type: 'POST',
+            url: '<%= directthreadmsgdirectly_path %>',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            dataType: 'json',
+            headers: {
+              'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+            },
+            complete : function(jqXHR, textStatus) {
+              location.reload();
+            },
+          });
+        });
+      }
+    });
+
+    // Showing files in direct thread list
+    document.querySelectorAll('[id^=file-item-]').forEach(fileItem => {
+      const messageId = fileItem.id.replace('file-item-', '');
+      const message = <%= raw @t_direct_threads.to_json %>.find(msg => msg.id.toString() === messageId);
+      if (message && message.file_urls[0] !== null ) {
+        fileItem.style.display = "block";
+        message.file_urls.forEach((fileUrl, index) => {
+          const fileName = message.file_names[index];
+          const fileExtension = fileName.split('.').pop().toLowerCase();
+
+          if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
+            var fileContainer = document.createElement('div');
+            fileContainer.classList.add('image-container');
+            const img = document.createElement('img');
+            img.src = fileUrl;
+            img.alt = fileName;
+            img.classList.add('direct-file-image');
+            fileContainer.appendChild(img);
+            var fullImage = document.getElementById('full-image');
+            var imageDialog = document.getElementById('image-dialog');
+            var dialogFilename = document.getElementById('dialog-filename');
+            var dialogClose = document.getElementById('dialog-close');
+            var overlay = document.getElementById('overlay');
+            // download image
+            var downloadLink = document.createElement('button');
+            downloadLink.classList.add('image-download-icon');
+            var icon = document.createElement('i');
+            icon.classList.add('fas', 'fa-download');
+            downloadLink.appendChild(icon);
+            fileContainer.appendChild(downloadLink);
+            fileItem.appendChild(fileContainer);
+            downloadLink.addEventListener('click', () => {
+              triggerDownload(fileUrl, fileName);
+            });
+            img.addEventListener('click', () => {
+              fullImage.src = img.src;
+                dialogFilename.textContent = img.alt;
+                imageDialog.style.display = 'flex';
+                overlay.style.display = 'block';
+            });
+            dialogClose.addEventListener('click', function() {
+              imageDialog.style.display = 'none';
+              overlay.style.display = 'none';
+            });
+            // Hide the dialog when clicking outside the image
+            imageDialog.addEventListener('click', function(event) {
+              if (event.target === imageDialog) {
+                imageDialog.style.display = 'none';
+                overlay.style.display = 'none';
+              }
+            });
+            overlay.addEventListener('click', function() {
+              imageDialog.style.display = 'none';
+              overlay.style.display = 'none'; // Hide the overlay
+            });
+          } else {
+            var fileContainer = document.createElement('div');
+            fileContainer.classList.add('file-container');
+            var initialDiv = document.createElement('div');
+            initialDiv.classList.add('file-initial');
+            if (['xls', 'xlsx', 'csv'].includes(fileExtension)) {
+              initialDiv.textContent = 'X';
+              initialDiv.style.backgroundColor = 'green';
+            } else if (fileExtension === 'txt') {
+              initialDiv.textContent = 'T';
+              initialDiv.style.backgroundColor = 'blue';
+            } else if (fileExtension === 'zip') {
+              initialDiv.innerHTML = '<i class="fas fa-file-zipper"></i>';
+              initialDiv.style.backgroundColor = 'blue';
+            } else if (fileExtension === 'pdf') {
+              initialDiv.innerHTML = '<i class="fas fa-file-pdf"></i>';
+              initialDiv.style.backgroundColor = 'red';
+            } else if (['ppt', 'pptx'].includes(fileExtension))  {
+              initialDiv.textContent = 'P';
+              initialDiv.style.backgroundColor = 'red';
+            } else {
+              initialDiv.innerHTML = '<i class="fas fa-file-alt"></i>';
+              initialDiv.style.backgroundColor = 'blue';
+            }
+            // Create a div for the file details
+            var detailsDiv = document.createElement('div');
+            detailsDiv.classList.add('file-details');
+            detailsDiv.style.marginRight = '10px';
+            // Create elements for the file details
+            var filenameSpan = document.createElement('span');
+            filenameSpan.classList.add('filename-span');
+            filenameSpan.textContent = fileName;
+            filenameSpan.style.width = '200px';
+            var textSpan = document.createElement('span');
+            textSpan.textContent = "Download to get file";
+            textSpan.style.display = 'block';
+            // Append file details to the detailsDiv
+            detailsDiv.appendChild(filenameSpan);
+            detailsDiv.appendChild(textSpan);
+            // download file
+            var downloadLink = document.createElement('button');
+            downloadLink.classList.add('download-icon');
+            var icon = document.createElement('i');
+            icon.classList.add('fas', 'fa-download');
+            downloadLink.appendChild(icon);
+            downloadLink.addEventListener('click', () => {
+              triggerDownload(fileUrl, fileName);
+            });
+            // Append all to fileDiv
+            fileContainer.appendChild(initialDiv);
+            fileContainer.appendChild(detailsDiv);
+            fileContainer.appendChild(downloadLink);
+            fileItem.appendChild(fileContainer);
+          }
+        });
+      }
+    });
+
+    // passing file data to direct message
+    var passFileItem = document.getElementById('pass-file-item');
+    const passMessage = JSON.parse(passFileItem.dataset.message);
+    if (passMessage && passMessage.file_urls[0] !== null ) {
+      passFileItem.style.display = "block";
+      passMessage.file_urls.forEach((fileUrl, index) => {
+        const fileName = passMessage.file_names[index];
+        const fileExtension = fileName.split('.').pop().toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
+          var fileContainer = document.createElement('div');
+          fileContainer.classList.add('image-container');
+          const img = document.createElement('img');
+          img.src = fileUrl;
+          img.alt = fileName;
+          img.classList.add('direct-file-image');
+          fileContainer.appendChild(img);
+          var fullImage = document.getElementById('full-image');
+          var imageDialog = document.getElementById('image-dialog');
+          var dialogFilename = document.getElementById('dialog-filename');
+          var dialogClose = document.getElementById('dialog-close');
+          var overlay = document.getElementById('overlay');
+          // download image
+          var downloadLink = document.createElement('button');
+          downloadLink.classList.add('image-download-icon');
+          var icon = document.createElement('i');
+          icon.classList.add('fas', 'fa-download');
+          downloadLink.appendChild(icon);
+          fileContainer.appendChild(downloadLink);
+          passFileItem.appendChild(fileContainer);
+          downloadLink.addEventListener('click', () => {
+            triggerDownload(fileUrl, fileName);
+          });
+          img.addEventListener('click', () => {
+            fullImage.src = img.src;
+              dialogFilename.textContent = img.alt;
+              imageDialog.style.display = 'flex';
+              overlay.style.display = 'block';
+          });
+          dialogClose.addEventListener('click', function() {
+            imageDialog.style.display = 'none';
+            overlay.style.display = 'none';
+          });
+          // Hide the dialog when clicking outside the image
+          imageDialog.addEventListener('click', function(event) {
+            if (event.target === imageDialog) {
+              imageDialog.style.display = 'none';
+              overlay.style.display = 'none';
+            }
+          });
+          overlay.addEventListener('click', function() {
+            imageDialog.style.display = 'none';
+            overlay.style.display = 'none'; // Hide the overlay
+          });
+        } else {
+          var fileContainer = document.createElement('div');
+          fileContainer.classList.add('file-container');
+          var initialDiv = document.createElement('div');
+          initialDiv.classList.add('file-initial');
+          if (['xls', 'xlsx', 'csv'].includes(fileExtension)) {
+            initialDiv.textContent = 'X';
+            initialDiv.style.backgroundColor = 'green';
+          } else if (fileExtension === 'txt') {
+            initialDiv.textContent = 'T';
+            initialDiv.style.backgroundColor = 'blue';
+          } else if (fileExtension === 'zip') {
+            initialDiv.innerHTML = '<i class="fas fa-file-zipper"></i>';
+            initialDiv.style.backgroundColor = 'blue';
+          } else if (fileExtension === 'pdf') {
+            initialDiv.innerHTML = '<i class="fas fa-file-pdf"></i>';
+            initialDiv.style.backgroundColor = 'red';
+          } else if (['ppt', 'pptx'].includes(fileExtension))  {
+            initialDiv.textContent = 'P';
+            initialDiv.style.backgroundColor = 'red';
+          } else {
+            initialDiv.innerHTML = '<i class="fas fa-file-alt"></i>';
+            initialDiv.style.backgroundColor = 'blue';
+          }
+          // Create a div for the file details
+          var detailsDiv = document.createElement('div');
+          detailsDiv.classList.add('file-details');
+          detailsDiv.style.marginRight = '10px';
+          // Create elements for the file details
+          var filenameSpan = document.createElement('span');
+          filenameSpan.classList.add('filename-span');
+          filenameSpan.textContent = fileName;
+          filenameSpan.style.width = '200px';
+          var textSpan = document.createElement('span');
+          textSpan.textContent = "Download to get file";
+          textSpan.style.display = 'block';
+          // Append file details to the detailsDiv
+          detailsDiv.appendChild(filenameSpan);
+          detailsDiv.appendChild(textSpan);
+          // download file
+          var downloadLink = document.createElement('button');
+          downloadLink.classList.add('download-icon');
+          var icon = document.createElement('i');
+          icon.classList.add('fas', 'fa-download');
+          downloadLink.appendChild(icon);
+          downloadLink.addEventListener('click', () => {
+            triggerDownload(fileUrl, fileName);
+          });
+          // Append all to fileDiv
+          fileContainer.appendChild(initialDiv);
+          fileContainer.appendChild(detailsDiv);
+          fileContainer.appendChild(downloadLink);
+          passFileItem.appendChild(fileContainer);
+        }
+      });
+    }
+
+    // for group
+    groupMessageIds.forEach(function(gMessageId) {
+      var quill = new Quill(`#g-editor-${gMessageId}`, {
+        modules: {
+          toolbar: {
+            container: `#g-toolbar-${gMessageId}`,
+            handlers: {
+              link: function() {
+                var range = this.quill.getSelection();
+                if (range) {
+                  showLinkDialog(range, gMessageId);
+                }
+              }
+            }
+          }
+        },
+        placeholder: 'Type your message here ...',
+        theme: 'snow'
+      });
+
+      quill.setText('');
+      quill.update();
+
+      // highlight start
+      var isHighlighting = false;
+      var highlightTextBtn = document.querySelector(`#g-highlight-text-${gMessageId}`);
+      function updateButtonText() {
+        if (isHighlighting) {
+          highlightTextBtn.classList.add('active');
+        } else {
+          highlightTextBtn.classList.remove('active');
+        }
+      }
+
+      function toggleHighlight() {
+        var format = quill.getFormat();
+        if (format.highlight) {
+          quill.format('highlight', false);
+          isHighlighting = false;
+        } else {
+          quill.format('highlight', true);
+          isHighlighting = true;
+        }
+        updateButtonText();
+        quill.focus();
+      }
+
+      var hiddenInput = document.querySelector(`#g-quill-content-${gMessageId}`);
+      quill.on('text-change', function() {
+        if (hiddenInput) {
+          hiddenInput.value = quill.root.innerHTML;
+          var format = quill.getFormat();
+          isHighlighting = !!format.highlight;
+          updateButtonText();
+        } else {
+          console.log('Hidden input not found');
+        }
+      });
+
+      highlightTextBtn.addEventListener('click', function() {
+          toggleHighlight();
+        var htmlContent = quill.getSemanticHTML();
+        document.querySelector(`#g-quill-content-${gMessageId}`).value = htmlContent;
+      });
+      updateButtonText();
+      // highlight end
+
+      // codeblock and highlight btn status
+      quill.container.firstChild.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+          isHighlighting = false;
+          updateButtonText();
+        }
+      });
+
+      // for link dialog
+      var linkDialog = document.getElementById(`g-link-dialog-${gMessageId}`);
+      var range = quill.getSelection();
+      quill.on('selection-change', function(range, oldRange, source) {
+        if (range && range.length > 0) {
+          var selectedText = quill.getText(range.index, range.length);
+          if (selectedText) {
+            $(`#g-toolbar-${gMessageId}`).removeClass("hidden");
+          }
+          $(`#g-link-name-${gMessageId}`).val(selectedText);
+        }
+      });
+
+      function showLinkDialog(range) {
+        linkDialog.style.display = 'block';
+        document.querySelector(`#g-link-name-${gMessageId}`).focus();
+        document.querySelector(`#g-link-url-${gMessageId}`).value = 'https://';
+        document.querySelector(`#g-link-save-${gMessageId}`).onclick = function() {
+          var linkText = document.querySelector(`#g-link-name-${gMessageId}`).value;
+          var linkUrl = document.querySelector(`#g-link-url-${gMessageId}`).value;
+          if (linkText && linkUrl) {
+            quill.insertText(range.index, linkText,'link', linkUrl);
+            if (range.length > 0) {
+              quill.deleteText(range.index + linkText.length, range.length);
+            }
+            quill.setSelection(range.index + linkText.length, 0);
+            hideLinkDialog(gMessageId);
+          }
+        };
+        document.getElementById(`g-link-cancel-${gMessageId}`).onclick = function() {
+          hideLinkDialog(gMessageId);
+        };
+      }
+
+      function hideLinkDialog(gMessageId) {
+        linkDialog.style.display = 'none';
+        document.querySelector(`#g-link-name-${gMessageId}`).value = '';
+        document.querySelector(`#g-link-url-${gMessageId}`).value = '';
+      }
+
+      // Prevent Quill from losing focus when clicking inside the dialog
+      document.querySelector(`#g-link-dialog-${gMessageId}`).addEventListener('mousedown', function(event) {
+        event.stopPropagation();
+      });
+
+      // for toggle toolbar
+      var toolbarui = document.getElementById(`g-toolbar-${gMessageId}`);
+      var toggleButton = document.getElementById(`g-toggle-toolbar-${gMessageId}`);
+      toggleButton.addEventListener('click', function() {
+        toolbarui.classList.toggle('hidden');
+      });
+
+      var form = document.querySelector(`#g-quill-content-${gMessageId}`).closest('form');
+      form.addEventListener('submit', function(event) {
+        var htmlContent = quill.getSemanticHTML();
+        var quillContent = document.querySelector(`#g-quill-content-${gMessageId}`);
+        htmlContent = htmlContent.replace(/<pre([^>]*)data-language="plain"([^>]*)>([\s\S]*?)<\/pre>/g, function(match, attr1, attr2, content) {
+          content = content.trim().replace(/\n/g, '<br>');
+          return `<div${attr1}class="ql-code-block"${attr2}>${content}</div>`;
+        });
+        htmlContent = htmlContent.replace(/<\/blockquote>\s*<blockquote>/g, '<br>');
+        htmlContent = htmlContent.replace(/<\/p><p>/g, '<br>').replace(/<\/?p[^>]*>/g, '');
+        quillContent.value = htmlContent;
+
+        var gFiles = document.querySelector(`#g_file_input_${gMessageId}`).files;
+        if(gFiles.length > 0) {
+          event.preventDefault();
+          var messageContent = quillContent.value.trim();
+          var channelId = document.querySelector(`#channelId-${gMessageId}`).value;
+          var mentionName = document.querySelector(`#mention-${gMessageId}`).value;
+          var formData = {
+            session: {
+              message: messageContent,
+              t_group_message_id: gMessageId,
+              t_channel_id: channelId,
+              mention_name: mentionName,
+            }
+          };
+          sendGroupFormData(formData);
+        }
+      });
+
+      // for mention select
+      $( `#g-editor-${gMessageId}` ).autocomplete({
+        source: $(`#g-editor-${gMessageId}`).data('autocomplete-source'),
+        position: {
+          my: "left bottom",
+          at: "left top",
+        },
+        select: function(event, ui) {
+          event.preventDefault();
+          var range = quill.getSelection();
+          range.value = ui.item.value
+          $('.mention_name').val(range.value)
+          // Check the text before the cursor
+          var textBefore = quill.getText(range.index - 1, 1);
+          if (textBefore === '@') {
+            // Delete the @ before inserting the new text
+            quill.deleteText(range.index - 1, 1);
+            range.index -= 1;
+          }
+          quill.insertText(range.index, ui.item.label, "user");
+          quill.setSelection(range.index + ui.item.label.length);
+        }
+      });
+
+      // validate btn
+      var gSendbtn = document.querySelector(`#g-sendbtn-${gMessageId}`);
+      gSendbtn.disabled = true;
+      quill.on('text-change', function(delta, oldDelta, source) {
+        hiddenInput.value = quill.root.innerHTML;
+        checkGroupSendButton();
+      });
+
+      // files
+      var gFileInput = document.querySelector(`#g_file_input_${gMessageId}`);
+      var gImageDialog = document.getElementById('g-image-dialog');
+      var gDialogFilename = document.getElementById('g-dialog-filename');
+      var gFullImage = document.getElementById('g-full-image');
+      var gDialogClose = document.getElementById('g-dialog-close');
+      var gOverlay = document.getElementById('g-overlay');
+      var gFileContainer = document.getElementById(`g-file-container-${gMessageId}`);
+
+      const gEditor = document.querySelector(`#g-editor-${gMessageId}`);
+      gEditor.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === 'Backspace') {
+          if(gFileInput.files.length === 0) {
+            adjustTextboxHeight(gEditor.closest('.textboxeditor2'));
+          } else {
+            adjustTextBoxWithMoreFiles(gFileContainer);
+          }
+        }
+      });
+      gEditor.addEventListener('input', () => {
+        if(gFileInput.files.length === 0) {
+            adjustTextboxHeight(gEditor.closest('.textboxeditor2'));
+          } else {
+            adjustTextBoxWithMoreFiles(gFileContainer);
+          }
+      });
+      gEditor.addEventListener('paste', () => {
+        setTimeout(() => {
+          if(gFileInput.files.length === 0) {
+            adjustTextboxHeight(gEditor.closest('.textboxeditor2'));
+          } else {
+            adjustTextBoxWithMoreFiles(gFileContainer);
+          }
+        }, 0);
+      });
+
+      var block = document.querySelector(`#g-code-block-${gMessageId}`);
+      block.addEventListener('click', () => {
+        if(gFileInput.files.length === 0) {
+            adjustTextboxHeight(block.closest('.textboxeditor2'), 25);
+          } else {
+            if (fileContainer.scrollHeight == 72) {
+              adjustTextboxHeight(fileContainer.closest('.textboxeditor2'), 80);
+            } else if (fileContainer.scrollHeight <= 144) {
+              adjustTextboxHeight(fileContainer.closest('.textboxeditor2'), 150);
+            } else if (fileContainer.scrollHeight > 144) {
+              adjustTextboxHeight(fileContainer.closest('.textboxeditor2'), 220);
+            }
+          }
+      });
+
+      function checkGroupSendButton() {
+        var editorContent = quill.getText().trim();
+        var files = gFileInput.files;
+        if(editorContent.length === 0 && files.length === 0) {
+          gSendbtn.disabled = true;
+        } else {
+          gSendbtn.disabled = false;
+        }
+      }
+
+      function updateGroupFileInput(index) {
+        const dt = new DataTransfer();
+        const files = gFileInput.files;
+        for (let i = 0; i < files.length; i++) {
+          if (i !== index) {
+            dt.items.add(files[i]);
+          }
+        }
+        gFileInput.files = dt.files;
+      }
+
+      var dt = new DataTransfer();
+      for (var j = 0; j < gFileInput.files.length; j++) {
+        dt.items.add(gFileInput.files[j]);
+      }
+      gFileInput.files = dt.files;
+
+      gFileInput.addEventListener('change', function(event) {
+        const newFiles = event.target.files;
+        if(newFiles.length > 0) {
+          gFileContainer.style.display = 'flex';
+          gFileContainer.style.flexWrap = 'wrap';
+          for (var i = 0; i < newFiles.length; i++) {
+            (function(file, index) {
+              dt.items.add(file);
+              gFileInput.files = dt.files;
+              // Create a container for each file
+              var fileDiv = document.createElement('div');
+              fileDiv.classList.add('file-item');
+
+              // Create a remove button
+              var removeBtn = document.createElement('span');
+              removeBtn.classList.add('remove-btn');
+              removeBtn.innerHTML = '&times;';
+
+              (function(div, idx) {
+                removeBtn.addEventListener('click', function() {
+                  div.remove();
+                  updateGroupFileInput(idx);
+                  checkGroupSendButton();
+                  if(gFileInput.files.length === 0) {
+                    adjustTextboxHeight(gEditor.closest('.textboxeditor2'));
+                  }
+                });
+              })(fileDiv, index);
+
+              // Check if the file is an image
+              if (file.type.startsWith('image/')) {
+                var img = document.createElement('img');
+                img.classList.add('file-image');
+
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                  img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+                fileDiv.style.padding = '0px';
+                fileDiv.style.width = '60px';
+                fileDiv.style.height = '60px';
+                fileDiv.appendChild(img);
+                fileDiv.appendChild(removeBtn);
+
+                img.addEventListener('click', function() {
+                  gFullImage.src = img.src;
+                  gDialogFilename.textContent = file.name;
+                  gImageDialog.style.display = 'flex';
+                  gOverlay.style.display = 'block';
+                });
+              } else {
+                // Create a small container for the file initial
+                var initialDiv = document.createElement('div');
+                initialDiv.classList.add('file-initial');
+
+                  // Determine the content and background color based on file type
+                var fileType = file.type.split('/')[1];
+                if (fileType === 'vnd.openxmlformats-officedocument.spreadsheetml.sheet' || fileType === 'vnd.ms-excel') {
+                  initialDiv.textContent = 'X';
+                  initialDiv.style.backgroundColor = 'green';
+                } else if (fileType === 'plain') {
+                  initialDiv.textContent = 'T';
+                  initialDiv.style.backgroundColor = 'blue';
+                } else if (fileType === 'x-zip-compressed') {
+                  initialDiv.innerHTML = '<i class="fas fa-file-zipper"></i>';
+                  initialDiv.style.backgroundColor = 'blue';
+                } else if (fileType === 'pdf') {
+                  initialDiv.innerHTML = '<i class="fas fa-file-pdf"></i>';
+                  initialDiv.style.backgroundColor = 'red';
+                } else if (fileType === 'vnd.ms-powerpoint') {
+                  initialDiv.textContent = 'P';
+                  initialDiv.style.backgroundColor = 'red';
+                } else {
+                  initialDiv.innerHTML = '<i class="fas fa-file-alt"></i>';
+                  initialDiv.style.backgroundColor = 'blue';
+                }
+
+                // Create a div for the file details
+                var detailsDiv = document.createElement('div');
+                detailsDiv.classList.add('file-details');
+
+                // Create elements for the file details
+                var filenameSpan = document.createElement('span');
+                filenameSpan.classList.add('filename-span');
+                filenameSpan.textContent = file.name;
+
+                var filesizeSpan = document.createElement('span');
+                filesizeSpan.textContent = file.size < (1024 * 1024)
+                  ? (file.size / 1024).toFixed(2) + ' KB'
+                  : (file.size / (1024 * 1024)).toFixed(2) + ' MB'; // File size in KB or MB
+                filesizeSpan.style.display = 'block';
+
+                // Append file details to the detailsDiv
+                detailsDiv.appendChild(filenameSpan);
+                detailsDiv.appendChild(filesizeSpan);
+
+                // Append all to fileDiv
+                fileDiv.appendChild(removeBtn);
+                fileDiv.appendChild(initialDiv);
+                fileDiv.appendChild(detailsDiv);
+              }
+              gFileContainer.appendChild(fileDiv);
+            }) (newFiles[i], i);
+          }
+          adjustTextBoxWithMoreFiles(gFileContainer);
+        } else {
+          gFileContainer.style.display = 'none';
+        }
+        checkGroupSendButton();
+      });
+
+      gDialogClose.addEventListener('click', function() {
+        gImageDialog.style.display = 'none';
+        gOverlay.style.display = 'none';
+      });
+
+      // Hide the dialog when clicking outside the image
+      gImageDialog.addEventListener('click', function(event) {
+        if (event.target === gImageDialog) {
+          gImageDialog.style.display = 'none';
+          gOverlay.style.display = 'none';
+        }
+      });
+
+      gOverlay.addEventListener('click', function() {
+        gImageDialog.style.display = 'none';
+        gOverlay.style.display = 'none'; // Hide the overlay
+      });
+
+      // Function to convert files to JSON data
+      function gFilesToJSON(callback) {
+        const gFileInput = document.querySelector(`#g_file_input_${gMessageId}`);
+        const files = gFileInput.files;
+        const filesArray = [];
+        let filesProcessed = 0;
+        if (files.length === 0) {
+          callback([]);
+          return;
+        }
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            filesArray.push({
+                data: e.target.result.split(',')[1],
+                mime: file.type,
+                file_name: file.name
+            });
+            filesProcessed++;
+            if (filesProcessed === files.length) {
+                callback(filesArray);
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+
+      // Function to handle form submission
+      function sendGroupFormData(formData) {
+        gFilesToJSON(function(filesArray) {
+          formData['session']['files'] = filesArray;
+          $.ajax({
+            type: 'POST',
+            url: '<%= groupthreadmsgdirectly_path %>',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            dataType: 'json',
+            headers: {
+              'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+            },
+            complete : function(jqXHR, textStatus) {
+              location.reload();
+            },
+          });
+        });
+      }
+    });
+
+    // Showing files in group thread list
+    document.querySelectorAll('[id^=g-file-item-]').forEach(fileItem => {
+      const messageId = fileItem.id.replace('g-file-item-', '');
+      const message = <%= raw @t_group_threads.to_json %>.find(msg => msg.id.toString() === messageId);
+      if (message && message.file_urls[0] !== null ) {
+        fileItem.style.display = "block";
+        message.file_urls.forEach((fileUrl, index) => {
+          const fileName = message.file_names[index];
+          const fileExtension = fileName.split('.').pop().toLowerCase();
+
+          if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
+            var gFileContainer = document.createElement('div');
+            gFileContainer.classList.add('image-container');
+            const img = document.createElement('img');
+            img.src = fileUrl;
+            img.alt = fileName;
+            img.classList.add('direct-file-image');
+            gFileContainer.appendChild(img);
+            var fullImage = document.getElementById('g-full-image');
+            var imageDialog = document.getElementById('g-image-dialog');
+            var dialogFilename = document.getElementById('g-dialog-filename');
+            var dialogClose = document.getElementById('g-dialog-close');
+            var overlay = document.getElementById('g-overlay');
+            // download image
+            var downloadLink = document.createElement('button');
+            downloadLink.classList.add('image-download-icon');
+            var icon = document.createElement('i');
+            icon.classList.add('fas', 'fa-download');
+            downloadLink.appendChild(icon);
+            gFileContainer.appendChild(downloadLink);
+            fileItem.appendChild(gFileContainer);
+            downloadLink.addEventListener('click', () => {
+              triggerDownload(fileUrl, fileName);
+            });
+            img.addEventListener('click', () => {
+              fullImage.src = img.src;
+                dialogFilename.textContent = img.alt;
+                imageDialog.style.display = 'flex';
+                overlay.style.display = 'block';
+            });
+            dialogClose.addEventListener('click', function() {
+              imageDialog.style.display = 'none';
+              overlay.style.display = 'none';
+            });
+            // Hide the dialog when clicking outside the image
+            imageDialog.addEventListener('click', function(event) {
+              if (event.target === imageDialog) {
+                imageDialog.style.display = 'none';
+                overlay.style.display = 'none';
+              }
+            });
+            overlay.addEventListener('click', function() {
+              imageDialog.style.display = 'none';
+              overlay.style.display = 'none'; // Hide the overlay
+            });
+          } else {
+            var gFileContainer = document.createElement('div');
+            gFileContainer.classList.add('file-container');
+            var initialDiv = document.createElement('div');
+            initialDiv.classList.add('file-initial');
+            if (['xls', 'xlsx', 'csv'].includes(fileExtension)) {
+              initialDiv.textContent = 'X';
+              initialDiv.style.backgroundColor = 'green';
+            } else if (fileExtension === 'txt') {
+              initialDiv.textContent = 'T';
+              initialDiv.style.backgroundColor = 'blue';
+            } else if (fileExtension === 'zip') {
+              initialDiv.innerHTML = '<i class="fas fa-file-zipper"></i>';
+              initialDiv.style.backgroundColor = 'blue';
+            } else if (fileExtension === 'pdf') {
+              initialDiv.innerHTML = '<i class="fas fa-file-pdf"></i>';
+              initialDiv.style.backgroundColor = 'red';
+            } else if (['ppt', 'pptx'].includes(fileExtension))  {
+              initialDiv.textContent = 'P';
+              initialDiv.style.backgroundColor = 'red';
+            } else {
+              initialDiv.innerHTML = '<i class="fas fa-file-alt"></i>';
+              initialDiv.style.backgroundColor = 'blue';
+            }
+            // Create a div for the file details
+            var detailsDiv = document.createElement('div');
+            detailsDiv.classList.add('file-details');
+            detailsDiv.style.marginRight = '10px';
+            // Create elements for the file details
+            var filenameSpan = document.createElement('span');
+            filenameSpan.classList.add('filename-span');
+            filenameSpan.textContent = fileName;
+            filenameSpan.style.width = '200px';
+            var textSpan = document.createElement('span');
+            textSpan.textContent = "Download to get file";
+            textSpan.style.display = 'block';
+            // Append file details to the detailsDiv
+            detailsDiv.appendChild(filenameSpan);
+            detailsDiv.appendChild(textSpan);
+            // download file
+            var downloadLink = document.createElement('button');
+            downloadLink.classList.add('download-icon');
+            var icon = document.createElement('i');
+            icon.classList.add('fas', 'fa-download');
+            downloadLink.appendChild(icon);
+            downloadLink.addEventListener('click', () => {
+              triggerDownload(fileUrl, fileName);
+            });
+            // Append all to fileDiv
+            gFileContainer.appendChild(initialDiv);
+            gFileContainer.appendChild(detailsDiv);
+            gFileContainer.appendChild(downloadLink);
+            fileItem.appendChild(gFileContainer);
+          }
+        });
+      }
+    });
+
+    // passing file data to group message
+    var passFileItem = document.getElementById('g-pass-file-item');
+    const gPassMessage = JSON.parse(passFileItem.dataset.message);
+    if (gPassMessage && gPassMessage.file_urls[0] !== null ) {
+      passFileItem.style.display = "block";
+      gPassMessage.file_urls.forEach((fileUrl, index) => {
+        const fileName = gPassMessage.file_names[index];
+        const fileExtension = fileName.split('.').pop().toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
+          var fileContainer = document.createElement('div');
+          fileContainer.classList.add('image-container');
+          const img = document.createElement('img');
+          img.src = fileUrl;
+          img.alt = fileName;
+          img.classList.add('direct-file-image');
+          fileContainer.appendChild(img);
+          var fullImage = document.getElementById('g-full-image');
+          var imageDialog = document.getElementById('g-image-dialog');
+          var dialogFilename = document.getElementById('g-dialog-filename');
+          var dialogClose = document.getElementById('g-dialog-close');
+          var overlay = document.getElementById('g-overlay');
+          // download image
+          var downloadLink = document.createElement('button');
+          downloadLink.classList.add('image-download-icon');
+          var icon = document.createElement('i');
+          icon.classList.add('fas', 'fa-download');
+          downloadLink.appendChild(icon);
+          fileContainer.appendChild(downloadLink);
+          passFileItem.appendChild(fileContainer);
+          downloadLink.addEventListener('click', () => {
+            triggerDownload(fileUrl, fileName);
+          });
+          img.addEventListener('click', () => {
+            fullImage.src = img.src;
+              dialogFilename.textContent = img.alt;
+              imageDialog.style.display = 'flex';
+              overlay.style.display = 'block';
+          });
+          dialogClose.addEventListener('click', function() {
+            imageDialog.style.display = 'none';
+            overlay.style.display = 'none';
+          });
+          // Hide the dialog when clicking outside the image
+          imageDialog.addEventListener('click', function(event) {
+            if (event.target === imageDialog) {
+              imageDialog.style.display = 'none';
+              overlay.style.display = 'none';
+            }
+          });
+          overlay.addEventListener('click', function() {
+            imageDialog.style.display = 'none';
+            overlay.style.display = 'none'; // Hide the overlay
+          });
+        } else {
+          var fileContainer = document.createElement('div');
+          fileContainer.classList.add('file-container');
+          var initialDiv = document.createElement('div');
+          initialDiv.classList.add('file-initial');
+          if (['xls', 'xlsx', 'csv'].includes(fileExtension)) {
+            initialDiv.textContent = 'X';
+            initialDiv.style.backgroundColor = 'green';
+          } else if (fileExtension === 'txt') {
+            initialDiv.textContent = 'T';
+            initialDiv.style.backgroundColor = 'blue';
+          } else if (fileExtension === 'zip') {
+            initialDiv.innerHTML = '<i class="fas fa-file-zipper"></i>';
+            initialDiv.style.backgroundColor = 'blue';
+          } else if (fileExtension === 'pdf') {
+            initialDiv.innerHTML = '<i class="fas fa-file-pdf"></i>';
+            initialDiv.style.backgroundColor = 'red';
+          } else if (['ppt', 'pptx'].includes(fileExtension))  {
+            initialDiv.textContent = 'P';
+            initialDiv.style.backgroundColor = 'red';
+          } else {
+            initialDiv.innerHTML = '<i class="fas fa-file-alt"></i>';
+            initialDiv.style.backgroundColor = 'blue';
+          }
+          // Create a div for the file details
+          var detailsDiv = document.createElement('div');
+          detailsDiv.classList.add('file-details');
+          detailsDiv.style.marginRight = '10px';
+          // Create elements for the file details
+          var filenameSpan = document.createElement('span');
+          filenameSpan.classList.add('filename-span');
+          filenameSpan.textContent = fileName;
+          filenameSpan.style.width = '200px';
+          var textSpan = document.createElement('span');
+          textSpan.textContent = "Download to get file";
+          textSpan.style.display = 'block';
+          // Append file details to the detailsDiv
+          detailsDiv.appendChild(filenameSpan);
+          detailsDiv.appendChild(textSpan);
+          // download file
+          var downloadLink = document.createElement('button');
+          downloadLink.classList.add('download-icon');
+          var icon = document.createElement('i');
+          icon.classList.add('fas', 'fa-download');
+          downloadLink.appendChild(icon);
+          downloadLink.addEventListener('click', () => {
+            triggerDownload(fileUrl, fileName);
+          });
+          // Append all to fileDiv
+          fileContainer.appendChild(initialDiv);
+          fileContainer.appendChild(detailsDiv);
+          fileContainer.appendChild(downloadLink);
+          passFileItem.appendChild(fileContainer);
+        }
+      });
+    }
+
+    // download function
+    function triggerDownload(url, filename) {
+      fetch(url)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.blob();
+      })
+      .then(blob => {
+        const link = document.createElement('a');
+        const url = window.URL.createObjectURL(blob);
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(error => {
+        console.error('There has been a problem with your fetch operation:', error);
+      });
+    }
+  });
+
+  // Initialize all tooltips
+  $(document).ready(function() {
+    $('[data-toggle="tooltip"]').tooltip(
+      {container:'body', trigger: 'hover', placement:"top"}
+    );
+  });
+</script>

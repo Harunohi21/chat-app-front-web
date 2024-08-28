@@ -1,0 +1,1151 @@
+<div id="main">
+  <div>
+    <div class="title">
+      <h2 style="margin-left: 50px;"><%= @s_user["name"] %></h2>
+    </div>
+    <hr>
+    <% if @send_user["image_url"].present? %>
+      <img src="<%= @send_user["image_url"] %>" alt="Profile Image" class="profile-image" style="margin-left: 250px">
+    <% else %>
+      <div class="profile-placeholder" style="margin-left: 250px">
+        <%= @send_user["name"][0].upcase %>
+      </div>
+    <% end %>
+    <p class="style22"><strong><%= @send_user["name"] %></strong></p>
+    <p class="style23"><%= (@t_direct_message["created_at"].to_time + 9.hours).strftime("%F/%I:%M%p") %></p>
+    <div class="style3" style="white-space: pre-wrap; word-wrap: break-word; width: 550px"> <%= render_html(@t_direct_message["directmsg"]) %></div>
+
+    <div class="style3" id="pass-file-item" data-message="<%= @t_direct_message.to_json %>" style="display: none;"></div>
+    <div id="overlay" class="overlay"></div>
+    <div id="image-dialog" class="dialog-container">
+      <div id="dialog-filename" class="dialog-filename"></div>
+      <div class="dialog-close-container">
+        <span id="dialog-close" class="dialog-close">&times;</span>
+      </div>
+      <div class="dialog-content">
+        <img id="full-image" src="" alt="Full Image">
+      </div>
+    </div>   
+    <div class="reactionBox">
+      <% if @t_direct_react_msgids.include? @t_direct_message['id'] %>
+        <% @t_direct_msg_emojiscounts.each do |emoji_count| %>
+          <% userNames = [] %>
+          <% userIds = [] %>
+          <% if emoji_count["directmsgid"] == @t_direct_message['id'] %>
+            <% @direct_react_usernames.each do |react_userName| %>
+              <% if emoji_count["directmsgid"] == react_userName["directmsgid"] && emoji_count["emoji"] == react_userName["emoji"] %>
+                <% if react_userName["name"] == @current_user["name"] %>
+                  <% userNames << "#{react_userName["name"]}(自分)" %>
+                <% else %>
+                  <% userNames << react_userName["name"] %>
+                <% end %>
+                <% userIds << react_userName["userid"] %>
+              <% end %>   
+            <% end %>
+            <% if userIds.include? @current_user["id"] %>
+              <button type="button" class="btnEmoji" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" >
+                <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", directreact_path(message_id: @t_direct_message['id'].to_i, user_id: session[:current_user_id].to_i, emoji: emoji_count["emoji"],status: :false), style: "text-decoration:none;" %>
+              </button>
+            <% else %>
+              <button type="button" class="btnEmoji1" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。" >
+                <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", directreact_path(message_id: @t_direct_message['id'].to_i, user_id: session[:current_user_id].to_i, emoji: emoji_count["emoji"],status: :false), style: "text-decoration:none;" %>
+              </button>
+            <% end %>
+          <% end %>
+        <% end %>
+      <% end %>
+      <button type="button" class="btnEmojiMsg" data-toggle="tooltip" data-placement="top" title="リアクションする..." >
+        <%= link_to "", "", class: "far fa-laugh-beam emoji-button-msg", data: { message_id: @t_direct_message['id'] }, style: "text-decoration:none;" %>
+      </button>
+    </div>
+  </div>
+  <hr>
+  <div class="txtmsg">
+    <% @count = 0 %>
+    <h2 class="style1">Reply</h2>
+    <hr>
+    <% @t_direct_threads.each do |t_direct_thread| %>
+      <% if !t_direct_thread["draft_message_status"] %>
+        <% if t_direct_thread["image_url"].present? %>
+        <img src="<%= t_direct_thread["image_url"] %>" alt="Profile Image" class="profile-image" style="margin-left: 250px">
+      <% else %>
+        <div class="profile-placeholder" style="margin-left: 250px">
+          <%= t_direct_thread["name"][0].upcase %>
+        </div>
+      <% end %>
+        <p class="style22"><strong><%= t_direct_thread["name"] %></strong></p>
+        <p class="style23"><%= (t_direct_thread["created_at"].to_time + 9.hours).strftime("%F/%I:%M%p") %></p>
+        <p class="style24"></p> 
+        <%= link_to "", "", class: "far fa-laugh-beam style22 emoji-button", data: { thread_id: t_direct_thread["id"] }, style: "text-decoration:none;" %>
+        <% if @t_direct_star_thread_msgids.include? t_direct_thread["id"] %>
+          <%= link_to "", unstarthread_path(:id => t_direct_thread["id"]), class: "fas fa-star style22" %></li>
+        <% else %>
+          <%= link_to "", starthread_path(:id => t_direct_thread["id"]), class: "far fa-star style22" %></li>
+        <% end %>
+        <% if session[:m_user] == t_direct_thread["name"] %>
+          <%= link_to "", edit_directthreadmsg_path(id: t_direct_thread["id"]), class: "far fa-edit style22", id: "editbtn" %>
+        <% end %>
+        <% if session[:m_user] == t_direct_thread["name"] %>
+          <%= link_to "", delete_directthread_path(:id => t_direct_thread["id"]), class: "glyphicon glyphicon-trash style22" %>
+        <% end %>
+        <div class="style3" style="word-wrap: break-word; width: 550px"> <%= render_html(t_direct_thread["directthreadmsg"]) %></div>
+
+        <div class="style3" id="file-item-<%= t_direct_thread["id"] %>" style="display: none;"></div>
+        <div id="overlay" class="overlay"></div>
+        <div id="image-dialog" class="dialog-container">
+          <div id="dialog-filename" class="dialog-filename"></div>
+          <div class="dialog-close-container">
+            <span id="dialog-close" class="dialog-close">&times;</span>
+          </div>
+          <div class="dialog-content">
+            <img id="full-image" src="" alt="Full Image">
+          </div>
+        </div>
+
+        <div class="reactionBox">
+          <% if @t_direct_react_thread_msgids.include? t_direct_thread["id"] %> <!-- Check if there is data in the table -->
+            <% @t_direct_thread_emojiscounts.each do |emoji_count| %>
+              <% userNames = [] %>
+              <% userIds = [] %>
+              <% if emoji_count["directthreadid"] == t_direct_thread["id"] %>
+                <% @react_usernames.each do |react_userName| %>
+                  <% if emoji_count["directthreadid"] == react_userName["directthreadid"] && emoji_count["emoji"] == react_userName["emoji"] %>
+                    <% if react_userName["name"] == @current_user["name"] %>
+                      <% userNames << "#{react_userName["name"]}(自分)" %>
+                    <% else %>
+                      <% userNames << react_userName["name"] %>
+                    <% end %>
+                    <% userIds << react_userName["userid"] %>
+                  <% end %>
+                <% end %>
+                <% if userIds.include? @current_user["id"] %>
+                  <button type="button" class="btnEmoji" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。">
+                    <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", directthreadreact_path(thread_id: t_direct_thread["id"].to_i, user_id: session[:current_user_id].to_i, emoji: emoji_count["emoji"]), style: "text-decoration:none;" %>
+                  </button>
+                <% else %>
+                  <button type="button" class="btnEmoji1" data-toggle="tooltip" data-placement="top" title="<%= userNames.join(", ") %>がリアクションしました。">
+                    <%= link_to "#{emoji_count["emoji"]} #{emoji_count["emoji_count"]}", directthreadreact_path(thread_id: t_direct_thread["id"].to_i, user_id: session[:current_user_id].to_i, emoji: emoji_count["emoji"]), style: "text-decoration:none;" %>
+                  </button>
+                <% end %>
+              <% end %>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+    <div id = "messages"></div>
+  </div>  
+</div>
+
+<div class = "textboxbg">
+  <div class="textboxeditor">
+    <div id="toolbar">
+      <button class="ql-bold disable"></button>
+      <button class="ql-italic disable"></button>
+      <button class="ql-strike disable"></button>
+      <button class="ql-link disable"></button>
+      <button class="ql-list" value="ordered"></button>
+      <button class="ql-list" value="bullet"></button>
+      <button class="ql-blockquote"></button>
+      <button class="ql-code-block"></button>
+      <button id="highlight-text" class="btn-icon disable"><i class="fas fa-laptop-code"></i></button>
+    </div>
+    <div id="link-dialog" style="display: none;">
+      <h3 id= "link-title">Add your link</h3>
+      <input type="text" id="link-name" placeholder="Enter link name">
+      <input type="text" id="link-url" placeholder="Enter URL">
+      <button id="link-cancel">Cancel</button>
+      <button id="link-save">Yes</button>
+    </div>
+
+    <div id="file-container" style="display: none; margin-top: 10px;"></div>
+
+    <%= form_for(:session, url: directthreadmsg_path) do |f| %>
+      <div class="col-md-11" draftData="<%= @t_direct_threads.to_json %>" data-sender-id = "<%= session[:current_user_id] %>" id="form">
+        <div id="editor"></div>
+        <%= f.hidden_field :message, id: "quill-content" %>
+      </div>
+      <div class="col-md-1 mt-10">
+        <%= f.hidden_field :draft_status, value: false %>
+        <%= f.submit "Send", class: "btn btn-primary sendbtn", id: "send_btn" %>
+      </div>
+    
+      <div class="col-md-11">
+        <%= f.file_field :file, id: "file_input", style: "display: none;", multiple: true %>
+        <span onclick="document.getElementById('file_input').click();">
+          <i class="fas fa-plus"></i>
+        </span>
+        <button class="glyphicon glyphicon-font icon togglebtn" id="toggle-toolbar"></button>
+      </div>
+    <% end %>
+  </div>
+</div>
+<div>
+  <%= render "leftpanel/leftpanel" %>
+</div>
+
+<script>
+  if (!sessionStorage.getItem('reloaded')) {
+    sessionStorage.setItem('reloaded', 'true');
+    location.reload();
+  }
+  // highlight
+  var Inline = Quill.import('blots/inline');
+  class HighlightBlot extends Inline {
+    static create(value) {
+      let node = super.create();
+      node.setAttribute('class', 'highlight');
+      return node;
+    }
+
+    static formats(node) {
+      return node.getAttribute('class');
+    }
+  }
+  HighlightBlot.blotName = 'highlight';
+  HighlightBlot.tagName = 'span';
+  Quill.register(HighlightBlot);
+
+  //call quill
+  document.addEventListener("DOMContentLoaded", function() {
+    const toolbarOptions = [
+      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+      ['bold', 'italic', 'strike'],
+      ['link'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['blockquote','code-block'],
+    ];
+
+    const quill = new Quill('#editor', {
+      modules: {
+        toolbar: {
+          container: '#toolbar',
+          handlers: {
+            link: function() {
+              const range = this.quill.getSelection();
+              if (range) {
+                showLinkDialog(range);
+              }
+            }
+          }
+        }
+      },
+      placeholder: 'Type your message here ...',
+      theme: 'snow'
+    });
+
+    var senderId = $('#form').data('sender-id');
+    var t_direct_threads = JSON.parse($('#form').attr('draftData'));
+    var draft_message_arr = t_direct_threads.find((t_direct_thread)=>{
+      return (t_direct_thread.m_user_id == senderId && t_direct_thread.draft_message_status);
+    });
+    var isClickSendButton = false;
+    var isSaveDraft = true;
+    if (draft_message_arr != undefined ) {
+      var draftedMessage = draft_message_arr.directthreadmsg;
+      var draftSenderId = draft_message_arr.m_user_id;
+      var draftedMessageId = draft_message_arr.id;
+      isSaveDraft = false;
+    }
+    quill.setContents([{
+      insert: draftedMessage,
+    }]);
+
+    document.querySelector('#send_btn').addEventListener('click', function() {
+      isClickSendButton = true;
+    });
+
+    document.querySelector('form').addEventListener('submit', function(event) {
+      var htmlContent = quill.getSemanticHTML();
+      var quillContent = document.querySelector('#quill-content');
+      htmlContent = htmlContent.replace(/<pre([^>]*)data-language="plain"([^>]*)>([\s\S]*?)<\/pre>/g, function(match, attr1, attr2, content) {
+        content = content.trim().replace(/\n/g, '<br>');
+        return `<div${attr1}class="ql-code-block"${attr2}>${content}</div>`;
+      });
+      htmlContent = htmlContent.replace(/<\/blockquote>\s*<blockquote>/g, '<br>');
+      htmlContent = htmlContent.replace(/<\/p><p>/g, '<br>').replace(/<\/?p[^>]*>/g, '');
+      quillContent.value = htmlContent;
+
+      var files = document.getElementById('file_input').files;
+      if (files.length > 0) {
+        event.preventDefault();
+        var messageContent = quillContent.value.trim();
+        var draftStatus = false;
+        var formData = {
+          session: {
+            message: messageContent,
+            draft_status: draftStatus,
+          }
+        };
+        sendFormData(formData);
+      }
+    });
+
+    $(window).bind('beforeunload', () => {
+      sessionStorage.removeItem('reloaded');
+      var messageContent = quill.getText().trim();
+      var files = document.getElementById('file_input').files;
+      document.querySelector('form').addEventListener('submit', function(event) {
+        event.preventDefault(); 
+      });
+      if (messageContent.length > 0 && !isClickSendButton && isSaveDraft) {
+        var draftStatus = true;
+        var formData = {
+          session: {
+            message: messageContent,
+            draft_status: draftStatus,
+          }
+        };
+        $.ajax({
+          type: 'POST',
+          url: '<%= directthreadmsg_path %>',
+          contentType: 'application/json',
+          data: JSON.stringify(formData),
+          dataType: 'json',
+          headers: {
+            'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+          },
+        });
+      }
+      else if (messageContent.length > 0 && !isClickSendButton && !isSaveDraft) {
+        var draftStatus = true;
+        var formData = {
+          id: draftedMessageId,
+          session: {
+            message: messageContent,
+            draft_status: draftStatus,
+          }
+        };
+        $.ajax({
+          url: '<%= update_directthreadmsg_path %>',
+          contentType: 'application/json',
+          type: 'POST',
+          dataType: 'json',
+          data: JSON.stringify(formData),
+          headers: {
+            'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+          }
+        });
+      }
+      else if ((files.length > 0 && messageContent.length === 0 && isClickSendButton) || (files.length > 0 && messageContent.length > 0 && isClickSendButton)) {
+        return;
+      }
+      else if (!isClickSendButton && messageContent.length === 0) {
+        $.ajax({
+          url: '<%= delete_directthread_path %>',
+          type: 'GET',
+          dataType: 'json',
+          data:{id: draftedMessageId},
+          headers: {
+            'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+          }
+        });
+      }
+      else if (isClickSendButton && draft_message_arr) {
+        var delete_draft_massage_id = draft_message_arr.id;
+        $.ajax({
+          url: '<%= delete_directthread_path %>',
+          type: 'GET',
+          dataType: 'json',
+          data:{id: delete_draft_massage_id},
+          headers: {
+            'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+          }
+        });
+      }
+    });
+
+    // highlight start
+    var isHighlighting = false;
+    function updateButtonText() {
+      if (isHighlighting) {
+        document.querySelector('#highlight-text').classList.add('active');
+      } else {
+        document.querySelector('#highlight-text').classList.remove('active');
+      }
+    }
+
+    function toggleHighlight() {
+      var format = quill.getFormat();
+      if (format.highlight) {
+        quill.format('highlight', false);
+        isHighlighting = false;
+      } else {
+        quill.format('highlight', true);
+        isHighlighting = true;
+      }
+      updateButtonText();
+      quill.focus();
+    }
+
+    quill.on('text-change', function() {
+      var format = quill.getFormat();
+        isHighlighting = !!format.highlight;
+        updateButtonText();
+    });
+
+    document.querySelector('#highlight-text').addEventListener('click', function() {
+      toggleHighlight();
+      var htmlContent = quill.root.innerHTML;
+      document.querySelector('#quill-content').value = htmlContent;
+    });
+    updateButtonText();
+    // highlight end 
+
+    // highlight btn status 
+    quill.container.firstChild.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter') {
+        isHighlighting = false;
+        updateButtonText();
+      }
+    });
+
+    // for link dialog 
+    var range = quill.getSelection();
+    quill.on('selection-change', function(range, oldRange, source) {
+      if (range && range.length > 0) {
+        var selectedText = quill.getText(range.index, range.length);
+        if (selectedText) {
+          $('#toolbar').removeClass("hidden");
+        }
+        $('#link-name').val(selectedText);
+      }
+    });
+
+    function showLinkDialog(range) {
+      document.getElementById('link-dialog').style.display = 'block';
+      document.getElementById('link-name').focus();
+      document.getElementById('link-url').value = 'https://';
+      document.getElementById('link-save').onclick = function() {
+        const linkText = document.getElementById('link-name').value;
+        const linkUrl = document.getElementById('link-url').value;
+        if (linkText && linkUrl) {
+          quill.insertText(range.index, linkText,'link',linkUrl);
+          if (range.length > 0) {
+            quill.deleteText(range.index + linkText.length, range.length);
+          }
+          quill.setSelection(range.index + linkText.length, 0);
+          hideLinkDialog();
+        }
+      };
+      document.getElementById('link-cancel').onclick = function() {
+        hideLinkDialog();
+      };
+    }
+
+    function hideLinkDialog() {
+      document.getElementById('link-dialog').style.display = 'none';
+      document.getElementById('link-name').value = '';
+      document.getElementById('link-url').value = '';
+    }
+
+    // Prevent Quill from losing focus when clicking inside the dialog
+    document.getElementById('link-dialog').addEventListener('mousedown', function(event) {
+      event.stopPropagation();
+    });
+
+    // for toggle toolbar 
+    const toolbar = quill.getModule('toolbar');
+    const toolbarui = document.getElementById('toolbar');
+    const toggleButton = document.getElementById('toggle-toolbar');
+
+    toggleButton.addEventListener('click', function() {
+      toolbarui.classList.toggle('hidden');
+    });
+
+    // validate btn
+    var sendbtn = document.querySelector(".sendbtn");
+    if (draftedMessage !== undefined){
+      sendbtn.disabled = false;
+    }
+    else{
+      sendbtn.disabled = true;
+    }    quill.on('text-change', function(delta, oldDelta, source) {
+      checkSendButton();
+    });
+
+    // files
+    var fileInput = document.getElementById('file_input');
+    var imageDialog = document.getElementById('image-dialog');
+    var dialogFilename = document.getElementById('dialog-filename');
+    var fullImage = document.getElementById('full-image');
+    var dialogClose = document.getElementById('dialog-close');
+    var overlay = document.getElementById('overlay');
+
+    function checkSendButton() {
+      var editorContent = quill.getText().trim();
+      var files = fileInput.files;
+      var sendbtn = document.querySelector(".sendbtn");
+      if (editorContent.length === 0 && files.length === 0) {
+        sendbtn.disabled = true;
+      } else {
+        sendbtn.disabled = false;
+      }
+    }
+
+    var dt = new DataTransfer();
+    var fileArray = []; 
+
+    fileInput.addEventListener('change', function(event) {
+      var fileContainer = document.getElementById('file-container');
+      const newFiles = Array.from(event.target.files); // Convert FileList to array
+
+      if (newFiles.length > 0) {
+        fileContainer.style.display = 'flex';
+        fileContainer.style.flexWrap = 'wrap';
+
+        // Update DataTransfer and fileArray
+        newFiles.forEach((file, index) => {
+          dt.items.add(file);
+          fileArray.push(file); 
+          fileInput.files = dt.files;
+
+          // Create a container for each file
+          var fileDiv = document.createElement('div');
+          fileDiv.classList.add('file-item');
+          
+          var removeBtn = document.createElement('span');
+          removeBtn.classList.add('remove-btn');
+          removeBtn.innerHTML = '&times;';
+
+          // Remove file on button click
+          removeBtn.addEventListener('click', function() {
+            fileDiv.remove();
+            // Remove the file from fileArray and DataTransfer
+            const fileIndex = fileArray.indexOf(file);
+            if (fileIndex > -1) {
+              fileArray.splice(fileIndex, 1); 
+              let newDt = new DataTransfer();
+              fileArray.forEach(f => newDt.items.add(f)); 
+              dt = newDt; 
+              fileInput.files = dt.files; 
+              checkSendButton(); 
+            }
+          });
+
+          // Check if the file is an image
+          if (file.type.startsWith('image/')) {
+            var img = document.createElement('img');
+            img.classList.add('file-image');
+            var reader = new FileReader();
+            reader.onload = function(e) {
+              img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            fileDiv.style.padding = '0px';
+            fileDiv.style.width = '60px';
+            fileDiv.style.height = '60px';
+            fileDiv.appendChild(img);
+            fileDiv.appendChild(removeBtn);
+            img.addEventListener('click', function() {
+              fullImage.src = img.src;
+              dialogFilename.textContent = file.name;
+              imageDialog.style.display = 'flex';
+              overlay.style.display = 'block';
+            });
+          } else {
+            var initialDiv = document.createElement('div');
+            initialDiv.classList.add('file-initial');
+            var fileType = file.type.split('/')[1];
+            switch (fileType) {
+              case 'vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+              case 'vnd.ms-excel':
+                initialDiv.textContent = 'X';
+                initialDiv.style.backgroundColor = 'green';
+                break;
+              case 'plain':
+                initialDiv.textContent = 'T';
+                initialDiv.style.backgroundColor = 'blue';
+                break;
+              case 'x-zip-compressed':
+                initialDiv.innerHTML = '<i class="fas fa-file-zipper"></i>';
+                initialDiv.style.backgroundColor = 'blue';
+                break;
+              case 'pdf':
+                initialDiv.innerHTML = '<i class="fas fa-file-pdf"></i>';
+                initialDiv.style.backgroundColor = 'red';
+                break;
+              case 'vnd.ms-powerpoint':
+                initialDiv.textContent = 'P';
+                initialDiv.style.backgroundColor = 'red';
+                break;
+              default:
+                initialDiv.innerHTML = '<i class="fas fa-file-alt"></i>';
+                initialDiv.style.backgroundColor = 'blue';
+                break;
+            }
+            var detailsDiv = document.createElement('div');
+            detailsDiv.classList.add('file-details');
+            var filenameSpan = document.createElement('span');
+            filenameSpan.classList.add('filename-span');
+            filenameSpan.textContent = file.name;
+            var filesizeSpan = document.createElement('span');
+            filesizeSpan.textContent = file.size < (1024 * 1024)
+              ? (file.size / 1024).toFixed(2) + ' KB'
+              : (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+            filesizeSpan.style.display = 'block';
+            detailsDiv.appendChild(filenameSpan);
+            detailsDiv.appendChild(filesizeSpan);
+            fileDiv.appendChild(removeBtn);
+            fileDiv.appendChild(initialDiv);
+            fileDiv.appendChild(detailsDiv);
+          }
+          fileContainer.appendChild(fileDiv);
+        });
+      } else {
+        fileContainer.style.display = 'none';
+      }
+      checkSendButton(); 
+    });
+
+    dialogClose.addEventListener('click', function() {
+      imageDialog.style.display = 'none';
+      overlay.style.display = 'none';
+    });
+
+    // Hide the dialog when clicking outside the image
+    imageDialog.addEventListener('click', function(event) {
+      if (event.target === imageDialog) {
+        imageDialog.style.display = 'none';
+        overlay.style.display = 'none';
+      }
+    });
+
+    overlay.addEventListener('click', function() {
+      imageDialog.style.display = 'none';
+      overlay.style.display = 'none'; // Hide the overlay
+    });
+
+    // Function to convert files to JSON data
+    function filesToJSON(callback) {
+      const fileInput = document.getElementById('file_input');
+      const files = fileInput.files;
+      const filesArray = [];
+      let filesProcessed = 0;
+      if (files.length === 0) {
+          callback([]);
+          return;
+      }
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          filesArray.push({
+              data: e.target.result.split(',')[1],
+              mime: file.type,
+              file_name: file.name
+          });
+          filesProcessed++;
+          if (filesProcessed === files.length) {
+              callback(filesArray);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    // Function to handle form submission
+    function sendFormData(formData) {
+      filesToJSON(function(filesArray) {
+          formData['session']['files'] = filesArray;
+          $.ajax({
+            type: 'POST',
+            url: '<%= directthreadmsg_path %>',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            dataType: 'json',
+            headers: {
+              'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+            },
+            complete : function(jqXHR, textStatus) {
+              location.reload();
+            },
+          });
+      });
+    }
+  });
+
+  // download function
+  function triggerDownload(url, filename) {
+    fetch(url)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.blob();
+      })
+      .then(blob => {
+        const link = document.createElement('a');
+        const url = window.URL.createObjectURL(blob);
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(error => {
+        console.error('There has been a problem with your fetch operation:', error);
+      });
+  }
+
+  // Showing files in message list
+  document.querySelectorAll('[id^=file-item-]').forEach(fileItem => {
+    const messageId = fileItem.id.replace('file-item-', '');
+    const message = <%= raw @t_direct_threads.to_json %>.find(msg => msg.id.toString() === messageId);
+    if (message && message.file_urls[0] !== null ) {
+      fileItem.style.display = "block";
+      message.file_urls.forEach((fileUrl, index) => {
+        const fileName = message.file_names[index];
+        const fileExtension = fileName.split('.').pop().toLowerCase();
+
+        if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
+          var fileContainer = document.createElement('div');
+          fileContainer.classList.add('image-container');
+          const img = document.createElement('img');
+          img.src = fileUrl;
+          img.alt = fileName;
+          img.classList.add('direct-file-image');
+          fileContainer.appendChild(img);
+          var fullImage = document.getElementById('full-image');
+          var imageDialog = document.getElementById('image-dialog');
+          var dialogFilename = document.getElementById('dialog-filename');
+          var dialogClose = document.getElementById('dialog-close');
+          var overlay = document.getElementById('overlay');
+          // download image
+          var downloadLink = document.createElement('button');
+          downloadLink.classList.add('image-download-icon');
+          var icon = document.createElement('i');
+          icon.classList.add('fas', 'fa-download');
+          downloadLink.appendChild(icon);
+          fileContainer.appendChild(downloadLink);
+          fileItem.appendChild(fileContainer);
+          downloadLink.addEventListener('click', () => {
+            triggerDownload(fileUrl, fileName);
+          });
+          img.addEventListener('click', () => {
+            fullImage.src = img.src;
+              dialogFilename.textContent = img.alt;
+              imageDialog.style.display = 'flex';
+              overlay.style.display = 'block';
+          });
+          dialogClose.addEventListener('click', function() {
+            imageDialog.style.display = 'none';
+            overlay.style.display = 'none';
+          });
+          // Hide the dialog when clicking outside the image
+          imageDialog.addEventListener('click', function(event) {
+            if (event.target === imageDialog) {
+              imageDialog.style.display = 'none';
+              overlay.style.display = 'none';
+            }
+          });
+          overlay.addEventListener('click', function() {
+            imageDialog.style.display = 'none';
+            overlay.style.display = 'none'; // Hide the overlay
+          });
+        } else {
+          var fileContainer = document.createElement('div');
+          fileContainer.classList.add('file-container');
+          var initialDiv = document.createElement('div');
+          initialDiv.classList.add('file-initial');
+          if (['xls', 'xlsx', 'csv'].includes(fileExtension)) {
+            initialDiv.textContent = 'X';
+            initialDiv.style.backgroundColor = 'green';
+          } else if (fileExtension === 'txt') {
+            initialDiv.textContent = 'T';
+            initialDiv.style.backgroundColor = 'blue';
+          } else if (fileExtension === 'zip') {
+            initialDiv.innerHTML = '<i class="fas fa-file-zipper"></i>';
+            initialDiv.style.backgroundColor = 'blue';
+          } else if (fileExtension === 'pdf') {
+            initialDiv.innerHTML = '<i class="fas fa-file-pdf"></i>';
+            initialDiv.style.backgroundColor = 'red';
+          } else if (['ppt', 'pptx'].includes(fileExtension)) {
+            initialDiv.textContent = 'P';
+            initialDiv.style.backgroundColor = 'red';
+          } else {
+            initialDiv.innerHTML = '<i class="fas fa-file-alt"></i>';
+            initialDiv.style.backgroundColor = 'blue';
+          }
+          // Create a div for the file details
+          var detailsDiv = document.createElement('div');
+          detailsDiv.classList.add('file-details');
+          detailsDiv.style.marginRight = '10px';
+          // Create elements for the file details
+          var filenameSpan = document.createElement('span');
+          filenameSpan.classList.add('filename-span');
+          filenameSpan.textContent = fileName;
+          filenameSpan.style.width = '200px';
+          var textSpan = document.createElement('span');
+          textSpan.textContent = "Download to get file";
+          textSpan.style.display = 'block';
+          // Append file details to the detailsDiv
+          detailsDiv.appendChild(filenameSpan);
+          detailsDiv.appendChild(textSpan);
+          // download file
+          var downloadLink = document.createElement('button');
+          downloadLink.classList.add('download-icon');
+          var icon = document.createElement('i');
+          icon.classList.add('fas', 'fa-download');
+          downloadLink.appendChild(icon);
+          downloadLink.addEventListener('click', () => {
+            triggerDownload(fileUrl, fileName);
+          });
+          // Append all to fileDiv
+          fileContainer.appendChild(initialDiv);
+          fileContainer.appendChild(detailsDiv);
+          fileContainer.appendChild(downloadLink);
+          fileItem.appendChild(fileContainer);
+        }
+      });
+    }
+  });
+
+  // passing file data to thread list
+  var passFileItem = document.getElementById('pass-file-item');
+  const passMessage = JSON.parse(passFileItem.dataset.message);
+  if (passMessage && passMessage.file_urls[0] !== null ) {
+    passFileItem.style.display = "block";
+    passMessage.file_urls.forEach((fileUrl, index) => {
+      const fileName = passMessage.file_names[index];
+      const fileExtension = fileName.split('.').pop().toLowerCase();
+      if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension)) {
+        var fileContainer = document.createElement('div');
+        fileContainer.classList.add('image-container');
+        const img = document.createElement('img');
+        img.src = fileUrl;
+        img.alt = fileName;
+        img.classList.add('direct-file-image');
+        fileContainer.appendChild(img);
+        var fullImage = document.getElementById('full-image');
+        var imageDialog = document.getElementById('image-dialog');
+        var dialogFilename = document.getElementById('dialog-filename');
+        var dialogClose = document.getElementById('dialog-close');
+        var overlay = document.getElementById('overlay');
+        // download image
+        var downloadLink = document.createElement('button');
+        downloadLink.classList.add('image-download-icon');
+        var icon = document.createElement('i');
+        icon.classList.add('fas', 'fa-download');
+        downloadLink.appendChild(icon);
+        fileContainer.appendChild(downloadLink);
+        passFileItem.appendChild(fileContainer);
+        downloadLink.addEventListener('click', () => {
+          triggerDownload(fileUrl, fileName);
+        });
+        img.addEventListener('click', () => {
+          fullImage.src = img.src;
+            dialogFilename.textContent = img.alt;
+            imageDialog.style.display = 'flex';
+            overlay.style.display = 'block';
+        });
+        dialogClose.addEventListener('click', function() {
+          imageDialog.style.display = 'none';
+          overlay.style.display = 'none';
+        });
+        // Hide the dialog when clicking outside the image
+        imageDialog.addEventListener('click', function(event) {
+          if (event.target === imageDialog) {
+            imageDialog.style.display = 'none';
+            overlay.style.display = 'none';
+          }
+        });
+        overlay.addEventListener('click', function() {
+          imageDialog.style.display = 'none';
+          overlay.style.display = 'none'; // Hide the overlay
+        });
+      } else {
+        var fileContainer = document.createElement('div');
+        fileContainer.classList.add('file-container');
+        var initialDiv = document.createElement('div');
+        initialDiv.classList.add('file-initial');
+        if (['xls', 'xlsx', 'csv'].includes(fileExtension)) {
+          initialDiv.textContent = 'X';
+          initialDiv.style.backgroundColor = 'green';
+        } else if (fileExtension === 'txt') {
+          initialDiv.textContent = 'T';
+          initialDiv.style.backgroundColor = 'blue';
+        } else if (fileExtension === 'zip') {
+          initialDiv.innerHTML = '<i class="fas fa-file-zipper"></i>';
+          initialDiv.style.backgroundColor = 'blue';
+        } else if (fileExtension === 'pdf') {
+          initialDiv.innerHTML = '<i class="fas fa-file-pdf"></i>';
+          initialDiv.style.backgroundColor = 'red';
+        } else if (['ppt', 'pptx'].includes(fileExtension)) {
+          initialDiv.textContent = 'P';
+          initialDiv.style.backgroundColor = 'red';
+        } else {
+          initialDiv.innerHTML = '<i class="fas fa-file-alt"></i>';
+          initialDiv.style.backgroundColor = 'blue';
+        }
+        // Create a div for the file details
+        var detailsDiv = document.createElement('div');
+        detailsDiv.classList.add('file-details');
+        detailsDiv.style.marginRight = '10px';
+        // Create elements for the file details
+        var filenameSpan = document.createElement('span');
+        filenameSpan.classList.add('filename-span');
+        filenameSpan.textContent = fileName;
+        filenameSpan.style.width = '200px';
+        var textSpan = document.createElement('span');
+        textSpan.textContent = "Download to get file";
+        textSpan.style.display = 'block';
+        // Append file details to the detailsDiv
+        detailsDiv.appendChild(filenameSpan);
+        detailsDiv.appendChild(textSpan);
+        // download file
+        var downloadLink = document.createElement('button');
+        downloadLink.classList.add('download-icon');
+        var icon = document.createElement('i');
+        icon.classList.add('fas', 'fa-download');
+        downloadLink.appendChild(icon);
+        downloadLink.addEventListener('click', () => {
+          triggerDownload(fileUrl, fileName);
+        });
+        // Append all to fileDiv
+        fileContainer.appendChild(initialDiv);
+        fileContainer.appendChild(detailsDiv);
+        fileContainer.appendChild(downloadLink);
+        passFileItem.appendChild(fileContainer);
+      }
+    });
+  }
+</script>
+
+<!-- emoji button -->
+<script>
+  window.scrollTo(0, document.body.scrollHeight);
+  document.addEventListener('DOMContentLoaded', () => {
+    const picker = new EmojiButton();
+    document.querySelectorAll('.emoji-button').forEach(button => {
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        picker.togglePicker(button);
+        picker.on('emoji', emoji => {
+          var threadId = button.dataset.threadId;
+          return fetch('/directthreadreact', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+              emoji: emoji,
+              thread_id: threadId,
+            })
+          })
+          .then(response => {
+            console.log('Success:', response.status);
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            else {
+              window.location.reload();
+            }
+          })
+          .then(data => {
+            console.log('Success:', data);
+            // Handle success, update UI accordingly
+          })
+          .catch((error) => {
+            console.error('Error:', error);
+            // Handle error, update UI accordingly
+          });
+        });
+      });
+    });
+
+    // Ensure EmojiButton is included and accessible
+    window.handleEmojiClick = function(event, element) {
+      event.preventDefault(); // Prevent default anchor behavior
+      picker.togglePicker(element);
+
+      picker.on('emoji', emoji => {
+        const messageId = element.dataset.messageId;
+        fetch('/directthreadreact', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                emoji: emoji,
+                thread_id: messageId
+            })
+        })
+        .then(response => {
+            console.log('Success:', response.status);
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            else {
+              window.location.reload();
+            }
+          })
+        .then(data => {
+            console.log('Success:', data);
+            // Update the UI or handle the response as needed
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            // Handle error as needed
+        });
+      });
+    };
+
+    // Initialize all tooltips
+    $(document).ready(function() {
+      $('[data-toggle="tooltip"]').tooltip(
+        {container:'body', trigger: 'hover', placement:"top"}
+      );
+    });
+
+    const picker_msg = new EmojiButton();
+    document.querySelectorAll('.emoji-button-msg').forEach(button => {
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        picker_msg.togglePicker(button);
+        picker_msg.on('emoji', emoji => {
+          var messageId = button.dataset.messageId;
+          return fetch('/directreact', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+              emoji: emoji,
+              message_id: messageId
+            })
+          })
+          .then(response => {
+            console.log('Success:', response.status);
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            else {
+              window.location.reload();
+            }
+          })
+          .then(data => {
+            console.log('Success:', data);
+            // Handle success, update UI accordingly
+          })
+          .catch((error) => {
+            console.error('Error:', error);
+            // Handle error, update UI accordingly
+          });
+        });
+      });
+    });
+  });
+  
+
+
+    // Action cable 
+    var App = {};
+    App.cable = ActionCable.createConsumer('ws://localhost:3000/cable');
+
+    App.comments = App.cable.subscriptions.create('ThreadChannel', {
+      connected: function() {
+        console.log("Connected to the thread channel");
+      },
+
+      received: function(data) {
+        console.log(data);
+
+        let messageContent = data.message.directthreadmsg;
+        let messageSender = data.sender_name;
+        let profileImage = data.profile_image;
+        let draftMessageStatus = data.message.draft_message_status;
+        let messageId = data.message.id;
+        let mUserId = data.m_user_id;
+
+        // Function to format the date and time
+        function formatDateTime(dateString) {
+          const createdAt = new Date(dateString);
+
+          // Format the date
+          const year = createdAt.getFullYear();
+          const month = String(createdAt.getMonth() + 1).padStart(2, '0');
+          const day = String(createdAt.getDate()).padStart(2, '0');
+
+          // Format the time
+          const hours24 = createdAt.getHours();
+          const minutes = String(createdAt.getMinutes()).padStart(2, '0');
+          const ampm = hours24 >= 12 ? 'PM' : 'AM';
+          const hours12 = String(hours24 % 12 || 12).padStart(2, '0');
+
+          return `${year}-${month}-${day}/${hours12}:${minutes}${ampm}`;
+        }
+
+        const formattedDateTime = formatDateTime(data.message.created_at);
+        
+
+        // Construct the HTML to be appended
+        let messageHtml = '';
+
+        if (!draftMessageStatus) {
+          if (profileImage) {
+            messageHtml += `<img src="${profileImage}" alt="Profile Image" class="profile-image" style="margin-left: 250px">`;
+          } else {
+            messageHtml += `<div class="profile-placeholder" style="margin-left: 250px">${messageSender[0].toUpperCase()}</div>`;
+          }
+
+          messageHtml += `
+            <p class="style22"><strong>${messageSender}</strong></p>
+            <p class="style23">${formattedDateTime}</p>
+            <p class="style24"></p>
+            <a href="#" class="far fa-laugh-beam style22 emoji-button" onclick="handleEmojiClick(event, this)" data-message-id="${messageId}" style="text-decoration:none;"></a>
+          `;
+
+          if (data.starred) {
+            messageHtml += `<a href="/unstarthread?id=${messageId}" class="fas fa-star style22"></a>`;
+          } else {
+            messageHtml += `<a href="/starthread?id=${messageId}" class="far fa-star style22"></a>`;
+          }
+
+          if (data.sender_name === data.session_user_name) {
+            messageHtml += `<a href="/edit_directthreadmsg/${messageId}" class="far fa-edit style22" id="editbtn"></a>`;
+            messageHtml += `<a href="/delete_directthread/${messageId}" class="glyphicon glyphicon-trash style22"></a>`;
+          }
+
+          messageHtml += `
+            <div class="style3" id="messages" style="word-wrap: break-word; width: 550px">${messageContent}</div>
+            <div class="style3" id="file-item-${messageId}" style="display: none;"></div>
+            <div id="overlay" class="overlay"></div>
+            <div id="image-dialog" class="dialog-container">
+              <div id="dialog-filename" class="dialog-filename"></div>
+              <div class="dialog-close-container">
+                <span id="dialog-close" class="dialog-close">&times;</span>
+              </div>
+              <div class="dialog-content">
+                <img id="full-image" src="" alt="Full Image">
+              </div>
+            </div>
+          `;
+
+          // Append reactions (example, you may need to adjust based on your data structure)
+          if (data.reactions) {
+            data.reactions.forEach(function(reaction) {
+              let userNames = reaction.user_names.join(", ");
+              let emojiButtonClass = reaction.user_ids.includes(mUserId) ? "btnEmoji" : "btnEmoji1";
+              messageHtml += `
+                <button type="button" class="${emojiButtonClass}" data-toggle="tooltip" data-placement="top" title="${userNames}がリアクションしました。">
+                  <a href="/directthreadreact?thread_id=${messageId}?emoji=${reaction.emoji}&status=true" style="text-decoration:none;">${reaction.emoji} ${reaction.emoji_count}</a>
+                </button>
+              `;
+            });
+          }
+
+        }
+
+        // Append the new message to the chat window
+        $('#messages').append(messageHtml);
+
+        // Optionally, scroll to the bottom of the chat window
+        $('#messages').scrollTop($('#messages')[0].scrollHeight);
+      },
+    });
+</script>
